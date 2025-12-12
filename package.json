@@ -1,0 +1,48 @@
+{
+  "name": "sandbox-gemini",
+  "version": "1.0.0",
+  "description": "Multi-modal AI-based VC associate for the AGI House Gemini 3 hackathon",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test:1": "tsx src/tests/01-gemini-search.ts",
+    "test:2": "tsx src/tests/02-agent-tools.ts",
+    "test:3a": "tsx src/tests/03a-pipeline-cli.ts",
+    "test:3b": "npm run dev",
+    "test:4": "vercel dev",
+    "test:5": "tsx src/tests/05-full-integration.ts"
+  },
+  "keywords": [
+    "gemini",
+    "ai",
+    "vc",
+    "investment",
+    "vercel"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@ai-sdk/google": "^2.0.46",
+    "@tailwindcss/postcss": "^4.1.17",
+    "@types/node": "^25.0.0",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "ai": "^5.0.111",
+    "autoprefixer": "^10.4.22",
+    "dotenv": "^17.2.3",
+    "next": "^16.0.8",
+    "postcss": "^8.5.6",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
+    "tailwindcss": "^4.1.17",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.1",
+    "eslint-config-next": "^16.0.8"
+  }
+}
