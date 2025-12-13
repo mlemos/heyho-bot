@@ -46,18 +46,42 @@ export interface PipelineProgress {
   message?: string;
 }
 
+// Context from uploaded files, organized by research area
+export interface FileContext {
+  basics?: string;
+  founders?: string;
+  funding?: string;
+  product?: string;
+  competitive?: string;
+  news?: string;
+}
+
 // ===========================================
-// Research Functions
+// Research Functions (with optional file context)
 // ===========================================
 
-export async function researchCompanyBasics(companyName: string): Promise<string> {
+function buildContextPrefix(fileContext?: string): string {
+  if (!fileContext) return "";
+  return `IMPORTANT: Use this information from uploaded files as a primary source. Verify and supplement with web search:
+
+${fileContext}
+
+---
+
+Now search for additional/updated information:
+
+`;
+}
+
+export async function researchCompanyBasics(companyName: string, fileContext?: string): Promise<string> {
+  const contextPrefix = buildContextPrefix(fileContext);
   const { text } = await generateText({
     model: google("gemini-3-pro-preview"),
     tools: {
       google_search: google.tools.googleSearch({}),
     },
     stopWhen: stepCountIs(5),
-    prompt: `Search for basic information about "${companyName}" company:
+    prompt: `${contextPrefix}Search for basic information about "${companyName}" company:
 - What does the company do? (one paragraph description)
 - What industry/sector are they in?
 - What stage are they at? (pre-seed, seed, Series A, etc.)
@@ -69,14 +93,15 @@ Be thorough and cite specific facts.`,
   return text;
 }
 
-export async function researchFounders(companyName: string): Promise<string> {
+export async function researchFounders(companyName: string, fileContext?: string): Promise<string> {
+  const contextPrefix = buildContextPrefix(fileContext);
   const { text } = await generateText({
     model: google("gemini-3-pro-preview"),
     tools: {
       google_search: google.tools.googleSearch({}),
     },
     stopWhen: stepCountIs(5),
-    prompt: `Search for founder information about "${companyName}" company:
+    prompt: `${contextPrefix}Search for founder information about "${companyName}" company:
 - Who are the founders and co-founders?
 - What are their roles/titles?
 - What is their professional background? (previous companies, education)
@@ -87,14 +112,15 @@ Focus on finding specific names and verifiable background info.`,
   return text;
 }
 
-export async function researchFunding(companyName: string): Promise<string> {
+export async function researchFunding(companyName: string, fileContext?: string): Promise<string> {
+  const contextPrefix = buildContextPrefix(fileContext);
   const { text } = await generateText({
     model: google("gemini-3-pro-preview"),
     tools: {
       google_search: google.tools.googleSearch({}),
     },
     stopWhen: stepCountIs(5),
-    prompt: `Search for funding information about "${companyName}" company:
+    prompt: `${contextPrefix}Search for funding information about "${companyName}" company:
 - How much total funding have they raised?
 - What was their most recent funding round?
 - When did the last round close?
@@ -106,14 +132,15 @@ Look for specific dollar amounts and investor names.`,
   return text;
 }
 
-export async function researchProduct(companyName: string): Promise<string> {
+export async function researchProduct(companyName: string, fileContext?: string): Promise<string> {
+  const contextPrefix = buildContextPrefix(fileContext);
   const { text } = await generateText({
     model: google("gemini-3-pro-preview"),
     tools: {
       google_search: google.tools.googleSearch({}),
     },
     stopWhen: stepCountIs(5),
-    prompt: `Search for product and traction information about "${companyName}" company:
+    prompt: `${contextPrefix}Search for product and traction information about "${companyName}" company:
 - What is their main product or service?
 - What technology do they use or build?
 - Who are their customers/users?
@@ -125,14 +152,15 @@ Focus on product details and any available traction metrics.`,
   return text;
 }
 
-export async function researchCompetitive(companyName: string): Promise<string> {
+export async function researchCompetitive(companyName: string, fileContext?: string): Promise<string> {
+  const contextPrefix = buildContextPrefix(fileContext);
   const { text } = await generateText({
     model: google("gemini-3-pro-preview"),
     tools: {
       google_search: google.tools.googleSearch({}),
     },
     stopWhen: stepCountIs(5),
-    prompt: `Search for competitive landscape information about "${companyName}" company:
+    prompt: `${contextPrefix}Search for competitive landscape information about "${companyName}" company:
 - Who are their main competitors?
 - How do they differentiate themselves?
 - What is the market size/opportunity?
@@ -143,14 +171,15 @@ Identify specific competitor names and differentiation points.`,
   return text;
 }
 
-export async function researchNews(companyName: string): Promise<string> {
+export async function researchNews(companyName: string, fileContext?: string): Promise<string> {
+  const contextPrefix = buildContextPrefix(fileContext);
   const { text } = await generateText({
     model: google("gemini-3-pro-preview"),
     tools: {
       google_search: google.tools.googleSearch({}),
     },
     stopWhen: stepCountIs(5),
-    prompt: `Search for recent news and momentum about "${companyName}" company:
+    prompt: `${contextPrefix}Search for recent news and momentum about "${companyName}" company:
 - Any recent news articles or press releases?
 - Any product launches or major announcements?
 - Any partnerships or customer wins?
@@ -168,15 +197,17 @@ Focus on news from the last 6-12 months.`,
 
 export async function runParallelResearch(
   companyName: string,
-  onProgress?: (area: ResearchArea, status: ResearchProgress["status"]) => void
+  onProgress?: (area: ResearchArea, status: ResearchProgress["status"]) => void,
+  fileContext?: FileContext
 ): Promise<ParallelResearchResults> {
+  // Each research function gets its targeted context from files
   const tasks = [
-    { area: "basics" as ResearchArea, fn: () => researchCompanyBasics(companyName) },
-    { area: "founders" as ResearchArea, fn: () => researchFounders(companyName) },
-    { area: "funding" as ResearchArea, fn: () => researchFunding(companyName) },
-    { area: "product" as ResearchArea, fn: () => researchProduct(companyName) },
-    { area: "competitive" as ResearchArea, fn: () => researchCompetitive(companyName) },
-    { area: "news" as ResearchArea, fn: () => researchNews(companyName) },
+    { area: "basics" as ResearchArea, fn: () => researchCompanyBasics(companyName, fileContext?.basics) },
+    { area: "founders" as ResearchArea, fn: () => researchFounders(companyName, fileContext?.founders) },
+    { area: "funding" as ResearchArea, fn: () => researchFunding(companyName, fileContext?.funding) },
+    { area: "product" as ResearchArea, fn: () => researchProduct(companyName, fileContext?.product) },
+    { area: "competitive" as ResearchArea, fn: () => researchCompetitive(companyName, fileContext?.competitive) },
+    { area: "news" as ResearchArea, fn: () => researchNews(companyName, fileContext?.news) },
   ];
 
   const results = await Promise.all(

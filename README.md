@@ -1,14 +1,17 @@
 # VC Associate - AI-Powered Investment Research
 
-A multi-modal AI-based VC associate built for the AGI House Gemini 3 hackathon. The application processes investment opportunities using Gemini 2.5 Flash with Google Search grounding to research companies and generate comprehensive investment memos.
+A multi-modal AI-based VC associate built for the AGI House Gemini 3 hackathon. The application processes investment opportunities using Gemini 3 Pro with Google Search grounding to research companies and generate comprehensive investment memos.
 
 ## Features
 
+- **Multi-Modal Input**: Drag-and-drop any file type (pitch decks, images, PDFs, audio, video) - Gemini 3 processes natively
+- **Smart File Triage**: AI classifies uploaded files and routes relevant content to appropriate research areas
 - **Parallel Research Pipeline**: 6 concurrent specialized research queries (Company Info, Founders, Funding, Product, Competition, News)
 - **Three-Way Analysis**:
   - **Company Scorecard** (0.0-10.0): Objective company quality metrics (Team, Market, Product, Traction, Competition)
   - **Fund Fit** (0.0-10.0): Alignment with fund thesis (Stage, Sector, Geography, Check Size)
   - **Partner Fit** (0.0-10.0): Strategic partner alignment analysis
+- **Attachment References**: Memos document which files were analyzed and how they were used
 - **Real-time Progress**: SSE streaming with visual pipeline progress tracking
 - **Investment Memos**: Structured memo generation with executive summary, detailed sections, and scorecards
 - **Configurable**: Customizable fund thesis and strategic partners
@@ -46,9 +49,10 @@ npm run dev
 ### Usage
 
 1. Enter a company name in the chat input (e.g., "Anthropic", "Stripe", "Mistral AI")
-2. Watch the pipeline progress as it researches the company
-3. View the generated opportunity card with scores and analysis
-4. Click to expand for detailed memo sections
+2. Or drag-and-drop files (pitch decks, screenshots, documents) onto the chat panel
+3. Watch the pipeline progress as it triages files and researches the company
+4. View the generated opportunity card with scores and analysis
+5. Click to expand for detailed memo sections and see which files were used
 
 ## Project Structure
 
@@ -58,11 +62,18 @@ sandbox-gemini/
 │   ├── page.tsx                 # Main UI: chat + opportunity cards
 │   └── api/process/route.ts     # Streaming API endpoint
 ├── src/
-│   ├── lib/research.ts          # Research pipeline functions
+│   ├── lib/
+│   │   ├── research.ts          # Research pipeline functions
+│   │   └── multimodal.ts        # File triage and context extraction
 │   ├── config/
 │   │   ├── fund-thesis.ts       # Fund investment thesis config
 │   │   └── strategic-partners.ts # Strategic partners config
 │   └── types/schemas.ts         # Zod schemas for all types
+├── components/
+│   └── upload/                  # File upload components
+│       ├── AttachmentList.tsx
+│       ├── AttachmentPreview.tsx
+│       └── FileDropZone.tsx
 ├── .env.example
 └── package.json
 ```
@@ -90,24 +101,32 @@ Define your fund's strategic partners for fit analysis:
 
 ### Research Pipeline
 
-1. **Identify Company** - Extract company name from input
-2. **Check CRM** - Look for existing records (mocked)
-3. **Parallel Research** - 6 concurrent Gemini searches:
+1. **File Triage** (if files attached) - Gemini classifies files and extracts targeted content:
+   - `pitch_deck` → Extract info for ALL research areas
+   - `financial_model` → Extract for funding area
+   - `team_bio` → Extract for founders area
+   - `product_doc` → Extract for product area
+   - `market_research` → Extract for competitive area
+   - `press_coverage` → Extract for news area
+2. **Identify Company** - Extract company name from input or files
+3. **Check CRM** - Look for existing records (mocked)
+4. **Parallel Research** - 6 concurrent Gemini searches (with file context per area):
    - Company basics (description, industry, stage, location)
    - Founders (names, roles, backgrounds)
    - Funding (total raised, investors, last round)
    - Product (offering, traction, customers)
    - Competitive landscape
    - Recent news and momentum
-4. **Synthesize** - Structure research into `CompanyResearch` object
-5. **Generate Memo** - Create `InvestmentMemo` with:
+5. **Synthesize** - Structure research into `CompanyResearch` object
+6. **Generate Memo** - Create `InvestmentMemo` with:
    - Executive summary
    - Detailed sections (company, founders, investors, funding, momentum, competition, thesis alignment, synergies, risks)
    - Company Scorecard (objective metrics)
    - Fund Fit analysis
    - Partner Fit analysis
+   - Attachment references (what files were used and how)
    - One-liner and tags
-6. **Save to CRM** - Store opportunity (mocked)
+7. **Save to CRM** - Store opportunity (mocked)
 
 ### Streaming Progress
 
@@ -136,7 +155,7 @@ The API uses Server-Sent Events (SSE) to stream real-time progress:
 
 - [ ] Real CRM integration (Attio)
 - [ ] Google Drive integration for memo storage
-- [ ] Multi-modal input (screenshots, URLs, audio)
+- [ ] URL parsing (paste company website)
 - [ ] Batch processing (multiple companies from single input)
 - [ ] Full memo PDF/markdown download
 - [ ] Mobile-responsive UI

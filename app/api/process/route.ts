@@ -12,13 +12,20 @@ import {
   synthesizeResearch,
   generateInvestmentMemo,
   type ResearchArea,
+  type FileContext,
 } from "@/src/lib/research";
 import {
-  analyzeAttachments,
-  formatExtractedContext,
+  triageFiles,
+  buildResearchContext,
+  buildAttachmentReferences,
   type FileAttachment,
 } from "@/src/lib/multimodal";
-import type { CompanyResearch, InvestmentMemo, ExtractedCompanyInfo } from "@/src/types/schemas";
+import type {
+  CompanyResearch,
+  InvestmentMemo,
+  FileTriageResult,
+  AttachmentReference,
+} from "@/src/types/schemas";
 
 // ===========================================
 // Types
@@ -40,7 +47,7 @@ interface ProcessResult {
   memo: InvestmentMemo;
   crmRecordId: string;
   createdAt: string;
-  extractedInfo?: ExtractedCompanyInfo;
+  triageResult?: FileTriageResult;
 }
 
 // ===========================================
@@ -112,28 +119,35 @@ async function runPipeline(
 ): Promise<ProcessResult> {
   const startTime = Date.now();
   let companyName = textInput.trim();
-  let extractedInfo: ExtractedCompanyInfo | undefined;
-  let additionalContext = "";
+  let triageResult: FileTriageResult | undefined;
+  let fileContext: FileContext | undefined;
+  let attachmentReferences: AttachmentReference[] | undefined;
 
-  // Stage 0: Analyze attachments if present
+  // Stage 0: Triage files if present
   if (files.length > 0) {
-    send({ type: "progress", stage: "analyzing", message: `Analyzing ${files.length} file(s)...` });
+    send({ type: "progress", stage: "triaging", message: `Analyzing ${files.length} file(s)...` });
 
     try {
-      extractedInfo = await analyzeAttachments(files, textInput || undefined);
-      companyName = extractedInfo.companyName;
-      additionalContext = formatExtractedContext(extractedInfo);
+      triageResult = await triageFiles(files, textInput || undefined);
+      companyName = triageResult.companyName;
+      fileContext = buildResearchContext(triageResult);
+      attachmentReferences = buildAttachmentReferences(triageResult);
+
+      // Count how many files are being used
+      const usedFiles = triageResult.files.filter(
+        (f) => f.classification !== "irrelevant" && f.classification !== "reference_only"
+      ).length;
 
       send({
         type: "progress",
-        stage: "analyzed",
-        message: `Extracted info for "${companyName}" (confidence: ${(extractedInfo.confidence * 100).toFixed(0)}%)`,
+        stage: "triaged",
+        message: `Identified "${companyName}" - using ${usedFiles}/${files.length} file(s) for research (confidence: ${(triageResult.overallConfidence * 100).toFixed(0)}%)`,
       });
     } catch (error) {
       send({
         type: "progress",
-        stage: "analysis_warning",
-        message: `Could not extract info from files: ${error instanceof Error ? error.message : "Unknown error"}. Proceeding with text input.`,
+        stage: "triage_warning",
+        message: `Could not analyze files: ${error instanceof Error ? error.message : "Unknown error"}. Proceeding with text input only.`,
       });
     }
   }
@@ -156,30 +170,29 @@ async function runPipeline(
     send({ type: "progress", stage: "new", message: "New company - proceeding with research" });
   }
 
-  // Stage 3: Parallel research (with additional context from files if available)
+  // Stage 3: Parallel research with targeted file context
   send({ type: "progress", stage: "researching", message: "Starting parallel research..." });
 
-  const research = await runParallelResearch(companyName, (area, status) => {
-    send({ type: "research", area, status });
-  });
+  const research = await runParallelResearch(
+    companyName,
+    (area, status) => {
+      send({ type: "research", area, status });
+    },
+    fileContext // Pass targeted context to each research area
+  );
 
-  // Stage 4: Synthesize (include extracted context)
+  // Stage 4: Synthesize research
   send({ type: "progress", stage: "synthesizing", message: "Synthesizing research..." });
+  const structuredResearch = await synthesizeResearch(companyName, research);
 
-  // Enhance research with extracted info if available
-  let enhancedResearchInput = research;
-  if (additionalContext) {
-    enhancedResearchInput = {
-      ...research,
-      basics: `${research.basics}\n\nAdditional context from uploaded files:\n${additionalContext}`,
-    };
-  }
-
-  const structuredResearch = await synthesizeResearch(companyName, enhancedResearchInput);
-
-  // Stage 5: Generate memo
+  // Stage 5: Generate memo (with attachment references)
   send({ type: "progress", stage: "generating", message: "Generating investment memo..." });
   const memo = await generateInvestmentMemo(companyName, structuredResearch);
+
+  // Add attachment references to memo if files were processed
+  if (attachmentReferences && attachmentReferences.length > 0) {
+    memo.attachmentReferences = attachmentReferences;
+  }
 
   // Stage 6: Save to CRM
   send({ type: "progress", stage: "saving", message: "Saving to CRM..." });
@@ -196,7 +209,7 @@ async function runPipeline(
     memo,
     crmRecordId: crmRecord.recordId,
     createdAt: new Date().toISOString(),
-    extractedInfo,
+    triageResult,
   };
 }
 
@@ -225,6 +238,7 @@ export async function POST(request: NextRequest) {
       let totalSize = 0;
       const fileEntries = formData.getAll("files");
 
+      let fileIndex = 0;
       for (const entry of fileEntries) {
         if (entry instanceof File) {
           validateFileSize(entry.size, entry.name);
@@ -236,6 +250,7 @@ export async function POST(request: NextRequest) {
 
           const arrayBuffer = await entry.arrayBuffer();
           files.push({
+            id: `file-${fileIndex++}-${Date.now()}`,
             buffer: Buffer.from(arrayBuffer),
             mimeType: entry.type || "application/octet-stream",
             filename: entry.name,

@@ -8,8 +8,11 @@
 import { generateObject } from "ai";
 import { google } from "@ai-sdk/google";
 import {
-  ExtractedCompanyInfoSchema,
-  type ExtractedCompanyInfo,
+  FileTriageResultSchema,
+  type FileTriageResult,
+  type TriagedFile,
+  type AttachmentReference,
+  type ResearchAreaEnum,
 } from "../types/schemas";
 
 // ===========================================
@@ -17,52 +20,78 @@ import {
 // ===========================================
 
 export interface FileAttachment {
+  id: string;
   buffer: Buffer;
   mimeType: string;
   filename: string;
 }
 
+export interface ResearchContext {
+  basics?: string;
+  founders?: string;
+  funding?: string;
+  product?: string;
+  competitive?: string;
+  news?: string;
+}
+
 // ===========================================
-// Multi-Modal Analysis
+// File Triage
 // ===========================================
 
 /**
- * Analyze files using Gemini 3 Pro's native multi-modal capabilities.
- * Supports: images, PDFs, Office docs, audio, video, code, data files, etc.
- *
- * @param files - Array of file attachments with buffer, mimeType, and filename
- * @param textContext - Optional text context provided by the user
- * @returns Extracted company information from the files
+ * Triage files: classify each one and extract targeted content for each research area.
+ * This is the smart step that decides what information from each file goes where.
  */
-export async function analyzeAttachments(
+export async function triageFiles(
   files: FileAttachment[],
   textContext?: string
-): Promise<ExtractedCompanyInfo> {
+): Promise<FileTriageResult> {
   // Build the content array for the multi-modal message
   const content: Array<
     | { type: "text"; text: string }
     | { type: "file"; data: Buffer; mediaType: string }
   > = [];
 
-  // Add the analysis prompt
+  // Build file list for prompt
+  const fileList = files.map((f, i) => `${i + 1}. "${f.filename}" (ID: ${f.id})`).join("\n");
+
+  // Add the triage prompt
   content.push({
     type: "text",
-    text: `Analyze the following files and extract company/startup information.
+    text: `You are analyzing files uploaded for investment research on a company/startup.
 
-${textContext ? `User provided context: "${textContext}"\n\n` : ""}
+${textContext ? `User context: "${textContext}"\n\n` : ""}
 
-Extract as much information as possible about the company:
-- Company name (required)
-- What they do / description (required)
-- Industry/sector
-- Funding stage (Pre-Seed, Seed, Series A, etc.)
-- Founders/team members (names, roles, backgrounds)
-- Key metrics (users, revenue, growth rates, etc.)
-- Funding information (amount raised, investors, seeking)
-- Any other relevant context
+FILES TO ANALYZE:
+${fileList}
 
-Be thorough - analyze all pages/content. If information is unclear or not present, omit it rather than guessing.
-Set confidence based on how much verifiable information you found (1.0 = very confident, clear pitch deck; 0.3 = sparse info, uncertain).`,
+For each file, you must:
+
+1. CLASSIFY the file type:
+   - pitch_deck: Core company presentation - extract info for ALL research areas
+   - financial_model: Financial projections/cap table - extract for funding area
+   - team_bio: Team/founder details - extract for founders area
+   - product_doc: Product specs/demos - extract for product area
+   - market_research: Market/competitor analysis - extract for competitive area
+   - press_coverage: News articles/PR - extract for news area
+   - reference_only: Background info, don't factor into research
+   - irrelevant: Not related to company research, ignore
+
+2. EXTRACT content for each relevant research area:
+   - basics: Company name, description, industry, stage, location
+   - founders: Founder names, roles, backgrounds, credentials
+   - funding: Amounts raised, investors, valuations, round details
+   - product: Product details, technology, customers, metrics
+   - competitive: Market size, competitors, differentiation
+   - news: Recent announcements, partnerships, milestones
+
+3. Decide which research areas should use this file's content (useInResearch)
+
+Be thorough - extract all relevant details. For pitch decks, extract everything for all areas.
+For specialized documents, only extract what's relevant to their category.
+
+IMPORTANT: Identify the company name from the most authoritative source (usually the pitch deck).`,
   });
 
   // Add each file
@@ -74,10 +103,10 @@ Set confidence based on how much verifiable information you found (1.0 = very co
     });
   }
 
-  // Call Gemini 3 Pro with native multi-modal support
+  // Call Gemini 3 Pro for triage
   const { object } = await generateObject({
     model: google("gemini-3-pro-preview"),
-    schema: ExtractedCompanyInfoSchema,
+    schema: FileTriageResultSchema,
     messages: [
       {
         role: "user",
@@ -90,60 +119,83 @@ Set confidence based on how much verifiable information you found (1.0 = very co
 }
 
 /**
- * Format extracted company info into a context string for the research pipeline
+ * Build research context from triaged files.
+ * Returns context strings for each research area based on what files are relevant.
  */
-export function formatExtractedContext(info: ExtractedCompanyInfo): string {
-  const parts: string[] = [];
+export function buildResearchContext(triageResult: FileTriageResult): ResearchContext {
+  const context: ResearchContext = {};
 
-  parts.push(`Company: ${info.companyName}`);
-  parts.push(`Description: ${info.description}`);
+  const areas: ResearchAreaEnum[] = ["basics", "founders", "funding", "product", "competitive", "news"];
 
-  if (info.industry) {
-    parts.push(`Industry: ${info.industry}`);
-  }
+  for (const area of areas) {
+    const relevantContent: string[] = [];
 
-  if (info.stage) {
-    parts.push(`Stage: ${info.stage}`);
-  }
+    for (const file of triageResult.files) {
+      // Check if this file should be used for this research area
+      if (file.useInResearch.includes(area)) {
+        const areaContent = file.extractedContent[area];
+        if (areaContent) {
+          relevantContent.push(`[From ${file.filename}]: ${areaContent}`);
+        }
+      }
+    }
 
-  if (info.founders && info.founders.length > 0) {
-    const foundersList = info.founders
-      .map((f) => {
-        let str = f.name;
-        if (f.role) str += ` (${f.role})`;
-        if (f.background) str += ` - ${f.background}`;
-        return str;
-      })
-      .join("; ");
-    parts.push(`Founders: ${foundersList}`);
-  }
-
-  if (info.metrics) {
-    const metrics: string[] = [];
-    if (info.metrics.users) metrics.push(`Users: ${info.metrics.users}`);
-    if (info.metrics.revenue) metrics.push(`Revenue: ${info.metrics.revenue}`);
-    if (info.metrics.growth) metrics.push(`Growth: ${info.metrics.growth}`);
-    if (info.metrics.other) metrics.push(...info.metrics.other);
-    if (metrics.length > 0) {
-      parts.push(`Metrics: ${metrics.join(", ")}`);
+    if (relevantContent.length > 0) {
+      context[area] = relevantContent.join("\n\n");
     }
   }
 
-  if (info.funding) {
-    const funding: string[] = [];
-    if (info.funding.raised) funding.push(`Raised: ${info.funding.raised}`);
-    if (info.funding.investors && info.funding.investors.length > 0) {
-      funding.push(`Investors: ${info.funding.investors.join(", ")}`);
-    }
-    if (info.funding.seeking) funding.push(`Seeking: ${info.funding.seeking}`);
-    if (funding.length > 0) {
-      parts.push(`Funding: ${funding.join("; ")}`);
-    }
-  }
+  return context;
+}
 
-  if (info.additionalContext) {
-    parts.push(`Additional: ${info.additionalContext}`);
-  }
+/**
+ * Convert triaged files to attachment references for the memo.
+ */
+export function buildAttachmentReferences(triageResult: FileTriageResult): AttachmentReference[] {
+  return triageResult.files.map((file) => ({
+    fileId: file.fileId,
+    filename: file.filename,
+    classification: file.classification,
+    summary: file.summary,
+    usedIn: file.useInResearch,
+    notUsedReason: file.classification === "irrelevant"
+      ? "File not relevant to company research"
+      : file.classification === "reference_only"
+        ? "Used as background context only"
+        : undefined,
+  }));
+}
 
-  return parts.join("\n");
+/**
+ * Get a human-readable description of file classification
+ */
+export function getClassificationLabel(classification: string): string {
+  const labels: Record<string, string> = {
+    pitch_deck: "Pitch Deck",
+    financial_model: "Financial Model",
+    team_bio: "Team Bio",
+    product_doc: "Product Documentation",
+    market_research: "Market Research",
+    press_coverage: "Press Coverage",
+    reference_only: "Reference Only",
+    irrelevant: "Not Used",
+  };
+  return labels[classification] || classification;
+}
+
+/**
+ * Get icon/emoji for file classification
+ */
+export function getClassificationIcon(classification: string): string {
+  const icons: Record<string, string> = {
+    pitch_deck: "📊",
+    financial_model: "💰",
+    team_bio: "👥",
+    product_doc: "🛠️",
+    market_research: "📈",
+    press_coverage: "📰",
+    reference_only: "📎",
+    irrelevant: "⏭️",
+  };
+  return icons[classification] || "📄";
 }

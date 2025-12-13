@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import type { CompanyResearch, InvestmentMemo, StrategicFitAnalysis, FundFit } from "@/src/types/schemas";
+import type { CompanyResearch, InvestmentMemo, StrategicFitAnalysis, FundFit, AttachmentReference } from "@/src/types/schemas";
 import { AttachmentList, type AttachedFile } from "@/components/upload";
+import { getClassificationLabel, getClassificationIcon } from "@/src/lib/multimodal";
 
 // ===========================================
 // Types
@@ -477,6 +478,102 @@ function StrategicFitCard({ strategicFit }: { strategicFit: StrategicFitAnalysis
   );
 }
 
+function AttachmentReferencesCard({ attachments }: { attachments: AttachmentReference[] }) {
+  const usedAttachments = attachments.filter(
+    (a) => a.classification !== "irrelevant" && a.classification !== "reference_only"
+  );
+  const notUsedAttachments = attachments.filter(
+    (a) => a.classification === "irrelevant" || a.classification === "reference_only"
+  );
+
+  const getUsageColor = (usedIn: string[]) => {
+    if (usedIn.length >= 5) return "text-green-400";
+    if (usedIn.length >= 3) return "text-blue-400";
+    if (usedIn.length >= 1) return "text-yellow-400";
+    return "text-zinc-500";
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Used Files */}
+      {usedAttachments.length > 0 && (
+        <div className="space-y-2">
+          <h5 className="text-xs text-zinc-500 uppercase tracking-wide">
+            Files Used in Research ({usedAttachments.length})
+          </h5>
+          {usedAttachments.map((attachment) => (
+            <div
+              key={attachment.fileId}
+              className="bg-zinc-800/50 rounded-lg p-3 space-y-2"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-lg flex-shrink-0">
+                    {getClassificationIcon(attachment.classification)}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-zinc-200 truncate">
+                      {attachment.filename}
+                    </div>
+                    <div className="text-xs text-zinc-500">
+                      {getClassificationLabel(attachment.classification)}
+                    </div>
+                  </div>
+                </div>
+                <span className={`text-xs flex-shrink-0 ${getUsageColor(attachment.usedIn)}`}>
+                  {attachment.usedIn.length} area{attachment.usedIn.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+              <p className="text-xs text-zinc-400">{attachment.summary}</p>
+              {attachment.usedIn.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {attachment.usedIn.map((area) => (
+                    <span
+                      key={area}
+                      className="text-xs px-1.5 py-0.5 bg-green-500/10 text-green-400 rounded"
+                    >
+                      {area}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Not Used Files */}
+      {notUsedAttachments.length > 0 && (
+        <div className="space-y-2">
+          <h5 className="text-xs text-zinc-500 uppercase tracking-wide">
+            Files Not Used ({notUsedAttachments.length})
+          </h5>
+          {notUsedAttachments.map((attachment) => (
+            <div
+              key={attachment.fileId}
+              className="bg-zinc-800/30 rounded-lg p-3 opacity-60"
+            >
+              <div className="flex items-start gap-2">
+                <span className="text-lg flex-shrink-0">
+                  {getClassificationIcon(attachment.classification)}
+                </span>
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-zinc-400 truncate">
+                    {attachment.filename}
+                  </div>
+                  <div className="text-xs text-zinc-600">
+                    {attachment.notUsedReason || getClassificationLabel(attachment.classification)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function OpportunityCard({
   result,
   expanded,
@@ -660,6 +757,14 @@ function OpportunityCard({
             <div>
               <h4 className="text-sm font-medium text-zinc-300 mb-3">Strategic Partner Fit</h4>
               <StrategicFitCard strategicFit={memo.partnerFit} />
+            </div>
+          )}
+
+          {/* Attachment References */}
+          {memo.attachmentReferences && memo.attachmentReferences.length > 0 && (
+            <div className="pt-4 border-t border-zinc-700">
+              <h4 className="text-sm font-medium text-zinc-300 mb-3">Analyzed Files</h4>
+              <AttachmentReferencesCard attachments={memo.attachmentReferences} />
             </div>
           )}
 
@@ -878,7 +983,9 @@ export default function Home() {
               if (event.type === "progress") {
                 // Map stage to pipeline status
                 const stageMap: Record<string, PipelineStep> = {
-                  analyzing: "identify", // File analysis maps to identify step
+                  triaging: "identify", // File triage maps to identify step
+                  triaged: "identify",
+                  analyzing: "identify", // Legacy - File analysis maps to identify step
                   analyzed: "identify",
                   identifying: "identify",
                   checking: "crm_check",
@@ -891,13 +998,13 @@ export default function Home() {
                 if (step) {
                   setPipelineStatus((prev) => ({
                     ...prev,
-                    [step]: event.stage === "analyzed" ? "completed" : "in_progress",
+                    [step]: event.stage === "triaged" || event.stage === "analyzed" ? "completed" : "in_progress",
                   }));
                 }
                 // Mark previous steps as completed based on stage
-                if (event.stage === "analyzed") {
+                if (event.stage === "triaged" || event.stage === "analyzed") {
                   // Update processingCompany with extracted name
-                  const match = event.message?.match(/Extracted info for "([^"]+)"/);
+                  const match = event.message?.match(/Identified "([^"]+)"/);
                   if (match) {
                     setProcessingCompany(match[1]);
                   }

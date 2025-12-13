@@ -1,13 +1,16 @@
 # Implementation Plan: VC Associate
 
-## Status: MVP Complete → Phase 2 In Progress
+## Status: Phase 2.1 Complete → Phase 2.2 Pending
 
-The core MVP is functional with the following features working:
+The core MVP plus multi-modal support is functional with the following features working:
 - Gemini 3 Pro (`gemini-3-pro-preview`) + Google Search grounding
 - Parallel research pipeline (6 concurrent queries)
 - Three-way scoring (Company, Fund Fit, Partner Fit)
 - Real-time SSE streaming with progress tracking
 - Next.js UI with chat + opportunity cards
+- **Multi-modal file input** (drag-drop any file type)
+- **Smart file triage** (AI classifies files and routes content to research areas)
+- **Attachment references** (memo documents what files were used)
 
 ---
 
@@ -217,30 +220,33 @@ components/
 
 ## Implementation Checklist
 
-### Phase 2.1: Multi-Modal (Gemini-Native)
+### Phase 2.1: Multi-Modal (Gemini-Native) ✅ COMPLETE
 
-- [ ] **Infrastructure**
-  - [ ] Create `FileDropZone` component with drag-drop + click (mobile-friendly)
-  - [ ] Create `AttachmentPreview` component (thumbnails/icons by mime type)
-  - [ ] Create `AttachmentList` component with remove functionality
-  - [ ] Add file size validation utility (20MB limit)
+- [x] **Infrastructure**
+  - [x] Create `FileDropZone` component with drag-drop + click (mobile-friendly)
+  - [x] Create `AttachmentPreview` component (thumbnails/icons by mime type)
+  - [x] Create `AttachmentList` component with remove functionality
+  - [x] Add file size validation utility (20MB limit)
 
-- [ ] **API Updates**
-  - [ ] Update `/api/process` to handle `multipart/form-data`
-  - [ ] Parse files and convert to buffers with mime types
-  - [ ] Pass files directly to Gemini (no preprocessing)
+- [x] **API Updates**
+  - [x] Update `/api/process` to handle `multipart/form-data`
+  - [x] Parse files and convert to buffers with mime types
+  - [x] Pass files directly to Gemini (no preprocessing)
 
-- [ ] **Gemini Multi-Modal Integration**
-  - [ ] Create `analyzeAttachments()` function using Gemini 3 native multi-modal
-  - [ ] Define `ExtractedCompanyInfoSchema` for structured extraction
-  - [ ] Update research pipeline to use extracted context as seed
-  - [ ] Add new progress stages (uploading → analyzing)
+- [x] **Smart File Triage** (enhancement over original plan)
+  - [x] Create `triageFiles()` function using Gemini 3 native multi-modal
+  - [x] Define `FileTriageResultSchema` for file classification
+  - [x] Create `buildResearchContext()` to route content to research areas
+  - [x] Create `buildAttachmentReferences()` for memo documentation
+  - [x] Update research functions to accept targeted file context
+  - [x] Add new progress stages (triaging → triaged)
 
-- [ ] **UI Integration**
-  - [ ] Add drop zone to chat input area
-  - [ ] Show attachment previews before submission
-  - [ ] Update progress display for new stages
-  - [ ] Handle mixed input (text + files)
+- [x] **UI Integration**
+  - [x] Add full-panel drop zone with overlay to chat area
+  - [x] Show attachment previews before submission
+  - [x] Update progress display for new stages
+  - [x] Handle mixed input (text + files)
+  - [x] Display attachment references in expanded opportunity card
 
 ### Phase 2.2: Mobile-Responsive UX
 

@@ -118,6 +118,67 @@ export const StrategicFitAnalysisSchema = z.object({
 export type StrategicFitAnalysis = z.infer<typeof StrategicFitAnalysisSchema>;
 
 // ===========================================
+// File Triage & Classification
+// ===========================================
+
+export const ResearchAreaEnumSchema = z.enum([
+  "basics",
+  "founders",
+  "funding",
+  "product",
+  "competitive",
+  "news",
+]);
+export type ResearchAreaEnum = z.infer<typeof ResearchAreaEnumSchema>;
+
+export const FileClassificationSchema = z.enum([
+  "pitch_deck",      // Core company info - factor into ALL research
+  "financial_model", // Metrics/projections - factor into funding/traction
+  "team_bio",        // Team details - factor into founders research
+  "product_doc",     // Product info - factor into product research
+  "market_research", // Market/competitive info - factor into competitive
+  "press_coverage",  // News/PR - factor into news research
+  "reference_only",  // Just context, don't factor into research
+  "irrelevant",      // Ignore completely
+]);
+export type FileClassification = z.infer<typeof FileClassificationSchema>;
+
+export const TriagedFileSchema = z.object({
+  fileId: z.string().describe("Unique identifier for the file"),
+  filename: z.string().describe("Original filename"),
+  classification: FileClassificationSchema.describe("Type of document"),
+  summary: z.string().describe("Brief summary of what this file contains"),
+  extractedContent: z.object({
+    basics: z.string().optional().describe("Content relevant to company basics"),
+    founders: z.string().optional().describe("Content relevant to founders/team"),
+    funding: z.string().optional().describe("Content relevant to funding"),
+    product: z.string().optional().describe("Content relevant to product"),
+    competitive: z.string().optional().describe("Content relevant to competition"),
+    news: z.string().optional().describe("Content relevant to news/momentum"),
+  }).describe("Extracted content organized by research area"),
+  useInResearch: z.array(ResearchAreaEnumSchema).describe("Which research areas should use this file's content"),
+  reasoning: z.string().describe("Why this file was classified this way"),
+});
+export type TriagedFile = z.infer<typeof TriagedFileSchema>;
+
+export const FileTriageResultSchema = z.object({
+  companyName: z.string().describe("The company name identified from the files"),
+  files: z.array(TriagedFileSchema).describe("Classification and extraction for each file"),
+  overallConfidence: z.number().min(0).max(1).describe("Confidence in the overall analysis"),
+});
+export type FileTriageResult = z.infer<typeof FileTriageResultSchema>;
+
+export const AttachmentReferenceSchema = z.object({
+  fileId: z.string(),
+  filename: z.string(),
+  classification: FileClassificationSchema,
+  summary: z.string(),
+  usedIn: z.array(ResearchAreaEnumSchema).describe("Which research areas used this file"),
+  notUsedReason: z.string().optional().describe("If not used, why"),
+});
+export type AttachmentReference = z.infer<typeof AttachmentReferenceSchema>;
+
+// ===========================================
 // Memo Types
 // ===========================================
 
@@ -170,6 +231,7 @@ export const InvestmentMemoSchema = z.object({
   partnerFit: StrategicFitAnalysisSchema,
   oneLiner: z.string(),
   tags: z.array(z.string()),
+  attachmentReferences: z.array(AttachmentReferenceSchema).optional().describe("Files that were analyzed and how they were used"),
 });
 export type InvestmentMemo = z.infer<typeof InvestmentMemoSchema>;
 
