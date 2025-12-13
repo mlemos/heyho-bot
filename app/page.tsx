@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { CompanyResearch, InvestmentMemo, StrategicFitAnalysis, FundFit } from "@/src/types/schemas";
-import { FileDropZone, AttachmentList, type AttachedFile } from "@/components/upload";
+import { AttachmentList, type AttachedFile } from "@/components/upload";
 
 // ===========================================
 // Types
@@ -714,7 +714,7 @@ const initialPipelineStatus: PipelineStatus = {
 export default function Home() {
   const [input, setInput] = useState("");
   const [attachments, setAttachments] = useState<AttachedFile[]>([]);
-  const [showDropZone, setShowDropZone] = useState(false);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [opportunities, setOpportunities] = useState<ProcessResult[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -724,11 +724,11 @@ export default function Home() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dragCounterRef = useRef(0); // Track drag enter/leave for nested elements
 
   // File handling callbacks
   const handleFilesAdded = useCallback((files: AttachedFile[]) => {
     setAttachments((prev) => [...prev, ...files]);
-    setShowDropZone(false);
   }, []);
 
   const handleRemoveFile = useCallback((id: string) => {
@@ -738,6 +738,67 @@ export default function Home() {
   const handleClearAllFiles = useCallback(() => {
     setAttachments([]);
   }, []);
+
+  // Drag and drop handlers for the entire chat panel
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current++;
+    if (e.dataTransfer.types.includes("Files")) {
+      setIsDraggingOver(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) {
+      setIsDraggingOver(false);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback(
+    async (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounterRef.current = 0;
+      setIsDraggingOver(false);
+
+      if (isProcessing) return;
+
+      const files = Array.from(e.dataTransfer.files);
+      if (files.length === 0) return;
+
+      // Process files and create AttachedFile objects
+      const newAttachments: AttachedFile[] = [];
+      for (const file of files) {
+        // Create preview for images
+        let preview: string | undefined;
+        if (file.type.startsWith("image/")) {
+          preview = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target?.result as string);
+            reader.readAsDataURL(file);
+          });
+        }
+
+        newAttachments.push({
+          id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          file,
+          preview,
+        });
+      }
+
+      handleFilesAdded(newAttachments);
+    },
+    [isProcessing, handleFilesAdded]
+  );
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -757,7 +818,6 @@ export default function Home() {
     // Clear input and attachments
     setInput("");
     setAttachments([]);
-    setShowDropZone(false);
     setIsProcessing(true);
     setProcessingCompany(userMessage || `${filesToUpload.length} file(s)`);
     setPipelineStatus(initialPipelineStatus);
@@ -927,8 +987,60 @@ export default function Home() {
 
   return (
     <main className="flex h-screen">
-      {/* Left Panel - Chat */}
-      <div className="w-1/2 border-r border-zinc-800 flex flex-col">
+      {/* Left Panel - Chat (Drop Zone) */}
+      <div
+        className="w-1/2 border-r border-zinc-800 flex flex-col relative"
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
+        {/* Drop Overlay */}
+        {isDraggingOver && (
+          <div className="absolute inset-0 bg-blue-500/10 border-2 border-dashed border-blue-500 z-50 flex items-center justify-center backdrop-blur-sm">
+            <div className="bg-zinc-900/90 rounded-xl p-8 text-center shadow-2xl">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-500/20 flex items-center justify-center">
+                <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+              </div>
+              <p className="text-lg font-medium text-white">Drop files to analyze</p>
+              <p className="text-sm text-zinc-400 mt-1">PDF, images, docs, audio, video...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Hidden file input for click-to-browse */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={async (e) => {
+            const files = Array.from(e.target.files || []);
+            if (files.length === 0) return;
+
+            const newAttachments: AttachedFile[] = [];
+            for (const file of files) {
+              let preview: string | undefined;
+              if (file.type.startsWith("image/")) {
+                preview = await new Promise<string>((resolve) => {
+                  const reader = new FileReader();
+                  reader.onload = (ev) => resolve(ev.target?.result as string);
+                  reader.readAsDataURL(file);
+                });
+              }
+              newAttachments.push({
+                id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                file,
+                preview,
+              });
+            }
+            handleFilesAdded(newAttachments);
+            e.target.value = ""; // Reset for re-selection
+          }}
+        />
+
         {/* Header */}
         <div className="p-4 border-b border-zinc-800">
           <h1 className="text-xl font-bold">VC Associate</h1>
@@ -939,9 +1051,9 @@ export default function Home() {
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-zinc-500">Enter a company name to start research</p>
+              <p className="text-zinc-500">Enter a company name or drop files to start</p>
               <p className="text-zinc-600 text-sm mt-2">
-                Try: &quot;Anthropic&quot;, &quot;Mistral AI&quot;, or &quot;Perplexity&quot;
+                Try: &quot;Anthropic&quot;, &quot;Mistral AI&quot;, or drop a pitch deck
               </p>
             </div>
           )}
@@ -971,15 +1083,6 @@ export default function Home() {
 
         {/* Input */}
         <div className="p-4 border-t border-zinc-800 space-y-3">
-          {/* Drop Zone (toggleable) */}
-          {showDropZone && (
-            <FileDropZone
-              onFilesAdded={handleFilesAdded}
-              currentFiles={attachments}
-              disabled={isProcessing}
-            />
-          )}
-
           {/* Attachment List */}
           {attachments.length > 0 && (
             <AttachmentList
@@ -992,19 +1095,12 @@ export default function Home() {
 
           {/* Input Form */}
           <form onSubmit={handleSubmit} className="flex gap-2">
-            {/* Attachment Button */}
+            {/* Attachment Button (click to browse) */}
             <button
               type="button"
-              onClick={() => setShowDropZone(!showDropZone)}
+              onClick={() => fileInputRef.current?.click()}
               disabled={isProcessing}
-              className={`
-                p-2 rounded-lg transition-colors
-                ${showDropZone
-                  ? "bg-blue-600 text-white"
-                  : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-300"
-                }
-                disabled:opacity-50
-              `}
+              className="p-2 rounded-lg transition-colors bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-300 disabled:opacity-50"
               title="Attach files"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
