@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import type { CompanyResearch, InvestmentMemo, StrategicFitAnalysis, FundFit } from "@/src/types/schemas";
+import { FileDropZone, AttachmentList, type AttachedFile } from "@/components/upload";
 
 // ===========================================
 // Types
@@ -712,6 +713,8 @@ const initialPipelineStatus: PipelineStatus = {
 
 export default function Home() {
   const [input, setInput] = useState("");
+  const [attachments, setAttachments] = useState<AttachedFile[]>([]);
+  const [showDropZone, setShowDropZone] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [opportunities, setOpportunities] = useState<ProcessResult[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -720,6 +723,21 @@ export default function Home() {
   const [pipelineStatus, setPipelineStatus] = useState<PipelineStatus>(initialPipelineStatus);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // File handling callbacks
+  const handleFilesAdded = useCallback((files: AttachedFile[]) => {
+    setAttachments((prev) => [...prev, ...files]);
+    setShowDropZone(false);
+  }, []);
+
+  const handleRemoveFile = useCallback((id: string) => {
+    setAttachments((prev) => prev.filter((f) => f.id !== id));
+  }, []);
+
+  const handleClearAllFiles = useCallback(() => {
+    setAttachments([]);
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -731,23 +749,50 @@ export default function Home() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isProcessing) return;
+    if ((!input.trim() && attachments.length === 0) || isProcessing) return;
 
     const userMessage = input.trim();
+    const filesToUpload = [...attachments];
+
+    // Clear input and attachments
     setInput("");
+    setAttachments([]);
+    setShowDropZone(false);
     setIsProcessing(true);
-    setProcessingCompany(userMessage);
+    setProcessingCompany(userMessage || `${filesToUpload.length} file(s)`);
     setPipelineStatus(initialPipelineStatus);
 
     // Add user message
-    setMessages((prev) => [...prev, { role: "user", content: userMessage, timestamp: new Date() }]);
+    const messageContent = userMessage
+      ? (filesToUpload.length > 0
+          ? `${userMessage} (+ ${filesToUpload.length} file${filesToUpload.length > 1 ? 's' : ''})`
+          : userMessage)
+      : `Uploaded ${filesToUpload.length} file${filesToUpload.length > 1 ? 's' : ''}: ${filesToUpload.map(f => f.file.name).join(', ')}`;
+
+    setMessages((prev) => [...prev, { role: "user", content: messageContent, timestamp: new Date() }]);
 
     try {
-      const response = await fetch("/api/process", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input: userMessage }),
-      });
+      let response: Response;
+
+      if (filesToUpload.length > 0) {
+        // Use FormData for file uploads
+        const formData = new FormData();
+        formData.append("input", userMessage);
+        for (const attachment of filesToUpload) {
+          formData.append("files", attachment.file);
+        }
+        response = await fetch("/api/process", {
+          method: "POST",
+          body: formData,
+        });
+      } else {
+        // Use JSON for text-only
+        response = await fetch("/api/process", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ input: userMessage }),
+        });
+      }
 
       if (!response.ok) {
         throw new Error("Failed to process request");
@@ -773,6 +818,8 @@ export default function Home() {
               if (event.type === "progress") {
                 // Map stage to pipeline status
                 const stageMap: Record<string, PipelineStep> = {
+                  analyzing: "identify", // File analysis maps to identify step
+                  analyzed: "identify",
                   identifying: "identify",
                   checking: "crm_check",
                   researching: "research_basics", // Will be updated by research events
@@ -784,11 +831,17 @@ export default function Home() {
                 if (step) {
                   setPipelineStatus((prev) => ({
                     ...prev,
-                    [step]: "in_progress",
+                    [step]: event.stage === "analyzed" ? "completed" : "in_progress",
                   }));
                 }
                 // Mark previous steps as completed based on stage
-                if (event.stage === "checking") {
+                if (event.stage === "analyzed") {
+                  // Update processingCompany with extracted name
+                  const match = event.message?.match(/Extracted info for "([^"]+)"/);
+                  if (match) {
+                    setProcessingCompany(match[1]);
+                  }
+                } else if (event.stage === "checking") {
                   setPipelineStatus((prev) => ({ ...prev, identify: "completed" }));
                 } else if (event.stage === "researching") {
                   setPipelineStatus((prev) => ({ ...prev, identify: "completed", crm_check: "completed" }));
@@ -917,25 +970,68 @@ export default function Home() {
         </div>
 
         {/* Input */}
-        <form onSubmit={handleSubmit} className="p-4 border-t border-zinc-800">
-          <div className="flex gap-2">
+        <div className="p-4 border-t border-zinc-800 space-y-3">
+          {/* Drop Zone (toggleable) */}
+          {showDropZone && (
+            <FileDropZone
+              onFilesAdded={handleFilesAdded}
+              currentFiles={attachments}
+              disabled={isProcessing}
+            />
+          )}
+
+          {/* Attachment List */}
+          {attachments.length > 0 && (
+            <AttachmentList
+              files={attachments}
+              onRemove={handleRemoveFile}
+              onClearAll={handleClearAllFiles}
+              previewSize="sm"
+            />
+          )}
+
+          {/* Input Form */}
+          <form onSubmit={handleSubmit} className="flex gap-2">
+            {/* Attachment Button */}
+            <button
+              type="button"
+              onClick={() => setShowDropZone(!showDropZone)}
+              disabled={isProcessing}
+              className={`
+                p-2 rounded-lg transition-colors
+                ${showDropZone
+                  ? "bg-blue-600 text-white"
+                  : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-300"
+                }
+                disabled:opacity-50
+              `}
+              title="Attach files"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+              </svg>
+            </button>
+
+            {/* Text Input */}
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Enter company name..."
+              placeholder={attachments.length > 0 ? "Add context (optional)..." : "Enter company name or drop files..."}
               disabled={isProcessing}
               className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 disabled:opacity-50"
             />
+
+            {/* Submit Button */}
             <button
               type="submit"
-              disabled={isProcessing || !input.trim()}
+              disabled={isProcessing || (!input.trim() && attachments.length === 0)}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:text-zinc-500 rounded-lg text-white font-medium transition-colors"
             >
               {isProcessing ? "Processing..." : "Research"}
             </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
 
       {/* Right Panel - Opportunities */}

@@ -198,6 +198,36 @@ export const ProcessedOpportunitySchema = z.object({
 export type ProcessedOpportunity = z.infer<typeof ProcessedOpportunitySchema>;
 
 // ===========================================
+// Extracted Company Info (from multi-modal analysis)
+// ===========================================
+
+export const ExtractedCompanyInfoSchema = z.object({
+  companyName: z.string().describe("The company name extracted from the files"),
+  description: z.string().describe("What the company does based on the files"),
+  industry: z.string().optional().describe("Industry/sector if identifiable"),
+  stage: z.string().optional().describe("Funding stage if mentioned (Pre-Seed, Seed, Series A, etc.)"),
+  founders: z.array(z.object({
+    name: z.string(),
+    role: z.string().optional(),
+    background: z.string().optional(),
+  })).optional().describe("Founders/team members if visible"),
+  metrics: z.object({
+    users: z.string().optional(),
+    revenue: z.string().optional(),
+    growth: z.string().optional(),
+    other: z.array(z.string()).optional(),
+  }).optional().describe("Any metrics/traction data visible"),
+  funding: z.object({
+    raised: z.string().optional(),
+    investors: z.array(z.string()).optional(),
+    seeking: z.string().optional(),
+  }).optional().describe("Funding information if visible"),
+  additionalContext: z.string().optional().describe("Any other relevant information extracted"),
+  confidence: z.number().min(0).max(1).describe("Confidence in the extraction (0.0-1.0)"),
+});
+export type ExtractedCompanyInfo = z.infer<typeof ExtractedCompanyInfoSchema>;
+
+// ===========================================
 // Progress Event Types (for streaming)
 // ===========================================
 

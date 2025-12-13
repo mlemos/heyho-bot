@@ -2,6 +2,7 @@
  * Process API Route
  *
  * Handles the full VC research pipeline with streaming progress updates.
+ * Supports both text-only and multi-modal (text + files) input.
  * Uses Server-Sent Events (SSE) to stream progress to the client.
  */
 
@@ -12,7 +13,12 @@ import {
   generateInvestmentMemo,
   type ResearchArea,
 } from "@/src/lib/research";
-import type { CompanyResearch, InvestmentMemo } from "@/src/types/schemas";
+import {
+  analyzeAttachments,
+  formatExtractedContext,
+  type FileAttachment,
+} from "@/src/lib/multimodal";
+import type { CompanyResearch, InvestmentMemo, ExtractedCompanyInfo } from "@/src/types/schemas";
 
 // ===========================================
 // Types
@@ -34,6 +40,7 @@ interface ProcessResult {
   memo: InvestmentMemo;
   crmRecordId: string;
   createdAt: string;
+  extractedInfo?: ExtractedCompanyInfo;
 }
 
 // ===========================================
@@ -82,18 +89,62 @@ async function mockCRMSaveNote(recordId: string, memo: InvestmentMemo): Promise<
 }
 
 // ===========================================
+// File Size Validation
+// ===========================================
+
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB per file
+const MAX_TOTAL_SIZE = 50 * 1024 * 1024; // 50MB total
+
+function validateFileSize(size: number, filename: string): void {
+  if (size > MAX_FILE_SIZE) {
+    throw new Error(`File "${filename}" exceeds 20MB limit`);
+  }
+}
+
+// ===========================================
 // Pipeline
 // ===========================================
 
 async function runPipeline(
-  input: string,
+  textInput: string,
+  files: FileAttachment[],
   send: (event: ProgressEvent) => void
 ): Promise<ProcessResult> {
-  const companyName = input.trim();
   const startTime = Date.now();
+  let companyName = textInput.trim();
+  let extractedInfo: ExtractedCompanyInfo | undefined;
+  let additionalContext = "";
+
+  // Stage 0: Analyze attachments if present
+  if (files.length > 0) {
+    send({ type: "progress", stage: "analyzing", message: `Analyzing ${files.length} file(s)...` });
+
+    try {
+      extractedInfo = await analyzeAttachments(files, textInput || undefined);
+      companyName = extractedInfo.companyName;
+      additionalContext = formatExtractedContext(extractedInfo);
+
+      send({
+        type: "progress",
+        stage: "analyzed",
+        message: `Extracted info for "${companyName}" (confidence: ${(extractedInfo.confidence * 100).toFixed(0)}%)`,
+      });
+    } catch (error) {
+      send({
+        type: "progress",
+        stage: "analysis_warning",
+        message: `Could not extract info from files: ${error instanceof Error ? error.message : "Unknown error"}. Proceeding with text input.`,
+      });
+    }
+  }
+
+  // Validate we have a company name
+  if (!companyName) {
+    throw new Error("Could not determine company name. Please provide a company name or upload files with company information.");
+  }
 
   // Stage 1: Identify company
-  send({ type: "progress", stage: "identifying", message: `Identifying company: ${companyName}` });
+  send({ type: "progress", stage: "identifying", message: `Researching: ${companyName}` });
 
   // Stage 2: Check CRM
   send({ type: "progress", stage: "checking", message: "Checking CRM for existing record..." });
@@ -105,16 +156,26 @@ async function runPipeline(
     send({ type: "progress", stage: "new", message: "New company - proceeding with research" });
   }
 
-  // Stage 3: Parallel research
+  // Stage 3: Parallel research (with additional context from files if available)
   send({ type: "progress", stage: "researching", message: "Starting parallel research..." });
 
   const research = await runParallelResearch(companyName, (area, status) => {
     send({ type: "research", area, status });
   });
 
-  // Stage 4: Synthesize
+  // Stage 4: Synthesize (include extracted context)
   send({ type: "progress", stage: "synthesizing", message: "Synthesizing research..." });
-  const structuredResearch = await synthesizeResearch(companyName, research);
+
+  // Enhance research with extracted info if available
+  let enhancedResearchInput = research;
+  if (additionalContext) {
+    enhancedResearchInput = {
+      ...research,
+      basics: `${research.basics}\n\nAdditional context from uploaded files:\n${additionalContext}`,
+    };
+  }
+
+  const structuredResearch = await synthesizeResearch(companyName, enhancedResearchInput);
 
   // Stage 5: Generate memo
   send({ type: "progress", stage: "generating", message: "Generating investment memo..." });
@@ -135,6 +196,7 @@ async function runPipeline(
     memo,
     crmRecordId: crmRecord.recordId,
     createdAt: new Date().toISOString(),
+    extractedInfo,
   };
 }
 
@@ -144,11 +206,52 @@ async function runPipeline(
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { input } = body;
+    const contentType = request.headers.get("content-type") || "";
 
-    if (!input || typeof input !== "string") {
-      return new Response(JSON.stringify({ error: "Input is required" }), {
+    let textInput = "";
+    let files: FileAttachment[] = [];
+
+    // Handle multipart/form-data (files + text)
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await request.formData();
+
+      // Get text input
+      const inputField = formData.get("input");
+      if (inputField && typeof inputField === "string") {
+        textInput = inputField;
+      }
+
+      // Get files
+      let totalSize = 0;
+      const fileEntries = formData.getAll("files");
+
+      for (const entry of fileEntries) {
+        if (entry instanceof File) {
+          validateFileSize(entry.size, entry.name);
+          totalSize += entry.size;
+
+          if (totalSize > MAX_TOTAL_SIZE) {
+            throw new Error("Total file size exceeds 50MB limit");
+          }
+
+          const arrayBuffer = await entry.arrayBuffer();
+          files.push({
+            buffer: Buffer.from(arrayBuffer),
+            mimeType: entry.type || "application/octet-stream",
+            filename: entry.name,
+          });
+        }
+      }
+    }
+    // Handle JSON (text only - backward compatible)
+    else {
+      const body = await request.json();
+      textInput = body.input || "";
+    }
+
+    // Validate input
+    if (!textInput && files.length === 0) {
+      return new Response(JSON.stringify({ error: "Input or files required" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
@@ -159,7 +262,7 @@ export async function POST(request: NextRequest) {
     // Run pipeline in background
     (async () => {
       try {
-        const result = await runPipeline(input, send);
+        const result = await runPipeline(textInput, files, send);
         send({ type: "result", data: result });
       } catch (error) {
         send({
