@@ -33,7 +33,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
-      <body className="antialiased min-h-screen bg-background text-foreground">
+      <body className="antialiased bg-background text-foreground fixed inset-0 overflow-hidden">
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

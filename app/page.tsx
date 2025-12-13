@@ -1108,10 +1108,6 @@ export default function Home() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if ((!input.trim() && attachments.length === 0) || isProcessing) return;
@@ -1135,6 +1131,9 @@ export default function Home() {
       : `Uploaded ${filesToUpload.length} file${filesToUpload.length > 1 ? 's' : ''}: ${filesToUpload.map(f => f.file.name).join(', ')}`;
 
     setMessages((prev) => [...prev, { role: "user", content: messageContent, timestamp: new Date() }]);
+
+    // Scroll to show user message
+    setTimeout(() => scrollToBottom(), 100);
 
     try {
       let response: Response;
@@ -1318,7 +1317,7 @@ export default function Home() {
   };
 
   return (
-    <main className="flex flex-col md:flex-row overflow-hidden" style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)', height: '100dvh' }}>
+    <main className="flex flex-col md:flex-row fixed inset-0 overflow-hidden" style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}>
       {/* Main Panel - Full width on mobile, half on desktop */}
       <div
         className="flex flex-col md:w-1/2 md:border-r overflow-hidden"
@@ -1379,9 +1378,10 @@ export default function Home() {
           <div>
             <div className="flex items-center gap-2">
               <img
-                src={mounted && resolvedTheme === 'light' ? '/logo-light.png' : '/logo-dark.png'}
+                src="/logo.svg"
                 alt="HeyHo"
                 className="h-7 w-auto"
+                style={{ filter: mounted && resolvedTheme === 'dark' ? 'invert(1)' : 'none' }}
               />
               <span className="text-xl font-bold" style={{ color: 'var(--foreground)' }}>Bot</span>
             </div>
@@ -1391,7 +1391,7 @@ export default function Home() {
         </div>
 
         {/* Messages + Inline Cards on Mobile */}
-        <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4" style={{ minHeight: 0 }}>
+        <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4" style={{ minHeight: 0, WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
           {messages.length === 0 && !isProcessing && opportunities.length === 0 && (
             <div className="text-center py-6 md:py-12 px-3 md:px-4">
               <p className="text-sm md:text-base" style={{ color: 'var(--foreground-muted)' }}>Enter a company name or drop files to start</p>
@@ -1401,27 +1401,91 @@ export default function Home() {
             </div>
           )}
 
-          {messages.map((msg, i) => (
-            <div
-              key={i}
-              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-            >
+          {/* Desktop: just messages */}
+          <div className="hidden md:block space-y-4">
+            {messages.map((msg, i) => (
               <div
-                className="max-w-[90%] md:max-w-[80%] rounded-lg px-3 md:px-4 py-2 md:py-2"
-                style={msg.role === "user"
-                  ? { backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }
-                  : { backgroundColor: 'var(--card)', color: 'var(--foreground-secondary)' }
-                }
+                key={i}
+                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
-                <p className="text-sm md:text-sm leading-relaxed">{msg.content}</p>
-                <p className="text-xs md:text-xs opacity-50 mt-1">
-                  {msg.timestamp.toLocaleTimeString()}
-                </p>
+                <div
+                  className="max-w-[80%] rounded-lg px-4 py-2"
+                  style={msg.role === "user"
+                    ? { backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }
+                    : { backgroundColor: 'var(--card)', color: 'var(--foreground-secondary)' }
+                  }
+                >
+                  <p className="text-sm leading-relaxed">{msg.content}</p>
+                  <p className="text-xs opacity-50 mt-1">
+                    {msg.timestamp.toLocaleTimeString()}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
 
-          {/* Inline Cards on Mobile - Processing */}
+          {/* Mobile: unified timeline - messages and cards interleaved chronologically */}
+          <div className="md:hidden space-y-3">
+            {(() => {
+              // Create unified timeline items
+              type TimelineItem =
+                | { type: 'message'; data: Message; timestamp: Date }
+                | { type: 'opportunity'; data: ProcessResult; timestamp: Date };
+
+              const timeline: TimelineItem[] = [
+                ...messages.map(msg => ({
+                  type: 'message' as const,
+                  data: msg,
+                  timestamp: msg.timestamp
+                })),
+                ...opportunities.map(opp => ({
+                  type: 'opportunity' as const,
+                  data: opp,
+                  timestamp: new Date(opp.createdAt)
+                }))
+              ];
+
+              // Sort by timestamp (oldest first)
+              timeline.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+              return timeline.map((item, i) => {
+                if (item.type === 'message') {
+                  const msg = item.data;
+                  return (
+                    <div
+                      key={`msg-${i}`}
+                      className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                    >
+                      <div
+                        className="max-w-[90%] rounded-lg px-3 py-2"
+                        style={msg.role === "user"
+                          ? { backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }
+                          : { backgroundColor: 'var(--card)', color: 'var(--foreground-secondary)' }
+                        }
+                      >
+                        <p className="text-sm leading-relaxed">{msg.content}</p>
+                        <p className="text-xs opacity-50 mt-1">
+                          {msg.timestamp.toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                } else {
+                  const opp = item.data;
+                  return (
+                    <OpportunityCard
+                      key={opp.id}
+                      result={opp}
+                      expanded={expandedId === opp.id}
+                      onToggle={() => setExpandedId(expandedId === opp.id ? null : opp.id)}
+                    />
+                  );
+                }
+              });
+            })()}
+          </div>
+
+          {/* Processing Card - shows at the end while processing */}
           {isProcessing && processingCompany && (
             <div className="md:hidden">
               <ProcessingCard
@@ -1431,18 +1495,6 @@ export default function Home() {
               />
             </div>
           )}
-
-          {/* Inline Cards on Mobile - Completed */}
-          <div className="md:hidden space-y-3">
-            {opportunities.map((opp) => (
-              <OpportunityCard
-                key={opp.id}
-                result={opp}
-                expanded={expandedId === opp.id}
-                onToggle={() => setExpandedId(expandedId === opp.id ? null : opp.id)}
-              />
-            ))}
-          </div>
 
           <div ref={messagesEndRef} />
         </div>
@@ -1526,7 +1578,7 @@ export default function Home() {
         </div>
 
         {/* Opportunities List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ minHeight: 0 }}>
+        <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ minHeight: 0, WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
           {/* Processing Card */}
           {isProcessing && processingCompany && (
             <ProcessingCard

@@ -98,17 +98,34 @@
 }
 
 /* Base styles */
-html, body {
+html {
   height: 100%;
+  height: -webkit-fill-available;
   margin: 0;
   padding: 0;
-  overflow: hidden; /* Prevent body scroll - scroll happens in content areas */
+  overflow: hidden;
 }
 
 body {
+  height: 100%;
+  height: -webkit-fill-available;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  overscroll-behavior: none; /* Prevent pull-to-refresh and overscroll */
+  -webkit-overflow-scrolling: touch;
   color: var(--foreground);
   background: var(--background);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* Prevent text selection on double-tap */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Allow text selection in input fields */
+input, textarea {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 /* Mobile viewport fix for iOS Safari */

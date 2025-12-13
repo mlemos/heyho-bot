@@ -47,6 +47,18 @@ export interface ResearchProgress {
   error?: string;
 }
 
+// Helper to map AI SDK v5 usage to our TokenUsage format
+// AI SDK v5 uses inputTokens/outputTokens instead of promptTokens/completionTokens
+function mapUsage(usage: { inputTokens?: number; outputTokens?: number } | undefined): TokenUsage {
+  const inputTokens = usage?.inputTokens || 0;
+  const outputTokens = usage?.outputTokens || 0;
+  return {
+    promptTokens: inputTokens,
+    completionTokens: outputTokens,
+    totalTokens: inputTokens + outputTokens,
+  };
+}
+
 export interface ParallelResearchResults {
   basics: string;
   founders: string;
@@ -98,7 +110,7 @@ export async function researchCompanyBasics(companyName: string, fileContext?: s
     tools: {
       google_search: google.tools.googleSearch({}),
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: stepCountIs(3),
     prompt: `${contextPrefix}Search for basic information about "${companyName}" company:
 - What does the company do? (one paragraph description)
 - What industry/sector are they in?
@@ -110,11 +122,7 @@ Be thorough and cite specific facts.`,
   });
   return {
     text,
-    usage: {
-      promptTokens: usage?.promptTokens || 0,
-      completionTokens: usage?.completionTokens || 0,
-      totalTokens: usage?.totalTokens || 0,
-    },
+    usage: mapUsage(usage),
   };
 }
 
@@ -125,7 +133,7 @@ export async function researchFounders(companyName: string, fileContext?: string
     tools: {
       google_search: google.tools.googleSearch({}),
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: stepCountIs(3),
     prompt: `${contextPrefix}Search for founder information about "${companyName}" company:
 - Who are the founders and co-founders?
 - What are their roles/titles?
@@ -136,11 +144,7 @@ Focus on finding specific names and verifiable background info.`,
   });
   return {
     text,
-    usage: {
-      promptTokens: usage?.promptTokens || 0,
-      completionTokens: usage?.completionTokens || 0,
-      totalTokens: usage?.totalTokens || 0,
-    },
+    usage: mapUsage(usage),
   };
 }
 
@@ -151,7 +155,7 @@ export async function researchFunding(companyName: string, fileContext?: string)
     tools: {
       google_search: google.tools.googleSearch({}),
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: stepCountIs(3),
     prompt: `${contextPrefix}Search for funding information about "${companyName}" company:
 - How much total funding have they raised?
 - What was their most recent funding round?
@@ -163,11 +167,7 @@ Look for specific dollar amounts and investor names.`,
   });
   return {
     text,
-    usage: {
-      promptTokens: usage?.promptTokens || 0,
-      completionTokens: usage?.completionTokens || 0,
-      totalTokens: usage?.totalTokens || 0,
-    },
+    usage: mapUsage(usage),
   };
 }
 
@@ -178,7 +178,7 @@ export async function researchProduct(companyName: string, fileContext?: string)
     tools: {
       google_search: google.tools.googleSearch({}),
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: stepCountIs(3),
     prompt: `${contextPrefix}Search for product and traction information about "${companyName}" company:
 - What is their main product or service?
 - What technology do they use or build?
@@ -190,11 +190,7 @@ Focus on product details and any available traction metrics.`,
   });
   return {
     text,
-    usage: {
-      promptTokens: usage?.promptTokens || 0,
-      completionTokens: usage?.completionTokens || 0,
-      totalTokens: usage?.totalTokens || 0,
-    },
+    usage: mapUsage(usage),
   };
 }
 
@@ -205,7 +201,7 @@ export async function researchCompetitive(companyName: string, fileContext?: str
     tools: {
       google_search: google.tools.googleSearch({}),
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: stepCountIs(3),
     prompt: `${contextPrefix}Search for competitive landscape information about "${companyName}" company:
 - Who are their main competitors?
 - How do they differentiate themselves?
@@ -216,11 +212,7 @@ Identify specific competitor names and differentiation points.`,
   });
   return {
     text,
-    usage: {
-      promptTokens: usage?.promptTokens || 0,
-      completionTokens: usage?.completionTokens || 0,
-      totalTokens: usage?.totalTokens || 0,
-    },
+    usage: mapUsage(usage),
   };
 }
 
@@ -231,7 +223,7 @@ export async function researchNews(companyName: string, fileContext?: string): P
     tools: {
       google_search: google.tools.googleSearch({}),
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: stepCountIs(3),
     prompt: `${contextPrefix}Search for recent news and momentum about "${companyName}" company:
 - Any recent news articles or press releases?
 - Any product launches or major announcements?
@@ -243,11 +235,7 @@ Focus on news from the last 6-12 months.`,
   });
   return {
     text,
-    usage: {
-      promptTokens: usage?.promptTokens || 0,
-      completionTokens: usage?.completionTokens || 0,
-      totalTokens: usage?.totalTokens || 0,
-    },
+    usage: mapUsage(usage),
   };
 }
 
@@ -343,7 +331,7 @@ ${research.news}
 `;
 
   const { object } = await generateObject({
-    model: google("gemini-3-pro-preview"),
+    model: google("gemini-2.5-flash"),  // Using Flash for faster synthesis
     schema: CompanyResearchSchema,
     prompt: `Based on the following research about "${companyName}", extract structured information.
 If information is not available, use reasonable defaults or "Unknown".
@@ -413,7 +401,7 @@ ${rawResearch.news}
     : "";
 
   const { object } = await generateObject({
-    model: google("gemini-3-pro-preview"),
+    model: google("gemini-2.5-flash"),  // Using Flash for faster memo generation
     schema: InvestmentMemoGenerationSchema,
     prompt: `Generate a professional, DETAILED investment memo for "${companyName}".
 
