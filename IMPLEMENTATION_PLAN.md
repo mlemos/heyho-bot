@@ -24,80 +24,103 @@ Enable users to research companies by uploading pitch decks, screenshots, or oth
 - `AttachmentPreview` - Thumbnail/icon display for attached files
 - `AttachmentList` - List of pending attachments before submission
 
-**Supported File Types:**
-| Type | Extensions | Processing |
-|------|-----------|------------|
-| Images | `.png`, `.jpg`, `.jpeg`, `.webp`, `.gif` | Direct to Gemini Vision |
-| PDFs | `.pdf` | Extract pages as images → Gemini Vision |
-| Documents | `.docx`, `.pptx` | Convert to PDF → Extract → Vision |
+**Supported File Types (Gemini-native):**
+
+Gemini 3 Pro natively handles a wide range of file types - no preprocessing needed!
+
+| Category | Types | Notes |
+|----------|-------|-------|
+| Images | PNG, JPEG, WebP, GIF, BMP | Direct vision processing |
+| Documents | PDF, TXT, HTML, CSS, JS, TS | Native document understanding |
+| Office | DOC, DOCX, XLS, XLSX, PPT, PPTX | Full document parsing |
+| Data | CSV, JSON, XML | Structured data extraction |
+| Code | Python, Java, C++, etc. | Code analysis |
+| Audio | MP3, WAV, FLAC, OGG | Transcription + analysis |
+| Video | MP4, MOV, AVI, MKV | Frame analysis + audio |
 
 **API Changes:**
 - Update `/api/process` to accept `multipart/form-data`
-- Add file validation (size limits, type checking)
-- Store attachments temporarily for processing
+- Add file validation (size limits only - let Gemini handle the rest)
+- Pass files directly to Gemini as buffers with mime types
 
-#### 1.2 Gemini Vision Integration
+#### 1.2 Gemini-Native Multi-Modal Processing
 
-**Multi-Modal Research Flow:**
+**Key Insight:** Gemini 3 Pro handles all file processing natively. No need for `pdf-lib`, `sharp`, or any preprocessing libraries.
+
+**Simplified Flow:**
 ```
-1. User drops pitch deck (PDF/images)
-2. Extract visual content (PDF pages → images)
-3. Send to Gemini with vision prompt:
-   "Analyze this pitch deck/screenshot. Extract:
-    - Company name
-    - What they do
-    - Key metrics shown
-    - Team information visible
-    - Any funding/investor info"
-4. Use extracted info to seed research pipeline
-5. Run normal parallel research with extracted context
+1. User drops any file(s) (pitch deck, screenshot, audio memo, video, etc.)
+2. Validate file size (< 20MB per file)
+3. Send directly to Gemini 3 with analysis prompt
+4. Gemini extracts company information from any format
+5. Use extracted info to seed research pipeline
+6. Run normal parallel research with extracted context
 ```
 
 **Implementation:**
 ```typescript
-import { generateText } from "ai";
+import { generateObject } from "ai";
 import { google } from "@ai-sdk/google";
 
-const { text } = await generateText({
+// Works with ANY supported file type - no preprocessing!
+const { object } = await generateObject({
   model: google("gemini-3-pro-preview"),
+  schema: ExtractedCompanyInfoSchema,
   messages: [
     {
       role: "user",
       content: [
-        { type: "text", text: "Analyze this pitch deck..." },
-        { type: "image", image: imageBuffer }, // or base64
+        {
+          type: "text",
+          text: `Analyze these files and extract company information:
+            - Company name
+            - What they do
+            - Key metrics (users, revenue, growth)
+            - Team/founders information
+            - Funding/investor info
+            - Any other relevant details`
+        },
+        // PDF pitch deck
+        { type: "file", data: pdfBuffer, mimeType: "application/pdf" },
+        // Screenshot
+        { type: "image", image: imageBuffer },
+        // Audio pitch
+        { type: "file", data: audioBuffer, mimeType: "audio/mp3" },
+        // ... any combination of files
       ],
     },
   ],
-  // Gemini 3 features:
-  // - thinking_level: "low" | "medium" | "high" (reasoning depth)
-  // - media_resolution: control vision processing quality vs tokens
 });
 ```
 
-#### 1.3 File Processing Pipeline
+#### 1.3 Simplified Pipeline
 
 **New Pipeline Stages:**
 ```
-[Upload] → [Validate] → [Extract] → [Analyze] → [Research] → [Generate]
-    │          │           │           │            │            │
-    │          │           │           │            │            └─ Existing memo generation
-    │          │           │           │            └─ Existing parallel research
-    │          │           │           └─ NEW: Gemini Vision analysis
-    │          │           └─ NEW: PDF/doc → images
-    │          └─ NEW: File type/size validation
+[Upload] → [Validate] → [Analyze] → [Research] → [Generate]
+    │          │            │            │            │
+    │          │            │            │            └─ Existing memo generation
+    │          │            │            └─ Existing parallel research
+    │          │            └─ NEW: Gemini 3 native multi-modal analysis
+    │          └─ NEW: File size validation (no type restrictions)
     └─ NEW: Drag-drop + click upload
 ```
 
 **Progress Events (updated):**
 - `uploading` - Files being uploaded
-- `extracting` - Converting PDF/docs to images
-- `analyzing` - Gemini Vision processing attachments
+- `analyzing` - Gemini processing attachments (native multi-modal)
 - `identifying` - (existing) Identify company from analysis
 - `researching` - (existing) Parallel research queries
 - `synthesizing` - (existing) Structure research
 - `generating` - (existing) Generate memo
 - `saving` - (existing) Save to CRM
+
+**What We Eliminated:**
+- ~~`pdf-lib`~~ - Gemini reads PDFs natively
+- ~~`sharp`~~ - No image preprocessing needed
+- ~~Page extraction~~ - Gemini handles full documents
+- ~~Format conversion~~ - Gemini handles Office docs natively
+- ~~Audio transcription libraries~~ - Gemini transcribes natively
 
 ---
 
@@ -194,28 +217,30 @@ components/
 
 ## Implementation Checklist
 
-### Phase 2.1: Multi-Modal (File Upload + Vision)
+### Phase 2.1: Multi-Modal (Gemini-Native)
 
 - [ ] **Infrastructure**
-  - [ ] Create `FileDropZone` component with drag-drop + click
-  - [ ] Create `AttachmentPreview` component (thumbnails/icons)
-  - [ ] Create `AttachmentList` component
-  - [ ] Add file validation utilities (type, size)
+  - [ ] Create `FileDropZone` component with drag-drop + click (mobile-friendly)
+  - [ ] Create `AttachmentPreview` component (thumbnails/icons by mime type)
+  - [ ] Create `AttachmentList` component with remove functionality
+  - [ ] Add file size validation utility (20MB limit)
 
 - [ ] **API Updates**
   - [ ] Update `/api/process` to handle `multipart/form-data`
-  - [ ] Add PDF page extraction (pdf-lib or similar)
-  - [ ] Add temporary file storage for processing
+  - [ ] Parse files and convert to buffers with mime types
+  - [ ] Pass files directly to Gemini (no preprocessing)
 
-- [ ] **Vision Integration**
-  - [ ] Create `analyzeAttachments()` function using Gemini Vision
-  - [ ] Update research pipeline to use extracted context
-  - [ ] Add new progress stages for upload/extract/analyze
+- [ ] **Gemini Multi-Modal Integration**
+  - [ ] Create `analyzeAttachments()` function using Gemini 3 native multi-modal
+  - [ ] Define `ExtractedCompanyInfoSchema` for structured extraction
+  - [ ] Update research pipeline to use extracted context as seed
+  - [ ] Add new progress stages (uploading → analyzing)
 
 - [ ] **UI Integration**
   - [ ] Add drop zone to chat input area
   - [ ] Show attachment previews before submission
   - [ ] Update progress display for new stages
+  - [ ] Handle mixed input (text + files)
 
 ### Phase 2.2: Mobile-Responsive UX
 
@@ -241,39 +266,40 @@ components/
 
 ## Technical Decisions
 
+### File Handling (Gemini-Native)
+
+**Key Decision:** Let Gemini handle everything. No preprocessing libraries.
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| File processing | Gemini-native | Handles PDFs, Office docs, images, audio, video natively |
+| Preprocessing | None | Gemini optimizes internally via `media_resolution` |
+| Libraries | None needed | Eliminates `pdf-lib`, `sharp`, transcription libs |
+
 ### File Size Limits
-- Images: 10MB max
-- PDFs: 20MB max (will extract first 10 pages)
+- Per file: 20MB max
 - Total per submission: 50MB max
+- Gemini handles optimization via `media_resolution` parameter
 
-### PDF Processing Options
-
-**Option A: Client-side (pdf.js)**
-- Pros: No server processing, fast
-- Cons: Larger bundle, limited format support
-
-**Option B: Server-side (pdf-lib + sharp)**
-- Pros: Better quality, more formats
-- Cons: Server resources, slower
-
-**Recommended: Option B** - Server-side processing for reliability
-
-### Image Optimization
-- Resize large images before sending to Gemini (max 2048px)
-- Convert to WebP/JPEG for smaller payloads
-- Use sharp for server-side processing
+### Supported Input Combinations
+Users can submit any combination of:
+- Text only (current behavior)
+- Files only (Gemini extracts company info)
+- Text + files (text provides context, files provide details)
 
 ---
 
 ## Architecture Overview
 
 **Core Technologies:**
-- **AI Engine**: Gemini 3 Pro (`gemini-3-pro-preview`) via Vercel AI SDK with Google Search grounding + Vision
+- **AI Engine**: Gemini 3 Pro (`gemini-3-pro-preview`) via Vercel AI SDK
+  - Google Search grounding for research
+  - Native multi-modal (images, PDFs, Office docs, audio, video)
 - **Frontend**: Next.js 16 with App Router
 - **Language**: TypeScript with strict mode
 - **Validation**: Zod schemas for structured outputs
 - **Streaming**: Server-Sent Events (SSE)
-- **File Processing**: pdf-lib (PDF), sharp (images)
+- **File Processing**: None needed - Gemini handles natively
 
 ---
 
