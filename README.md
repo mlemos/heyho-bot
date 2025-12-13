@@ -16,7 +16,7 @@ A multi-modal AI-based VC associate built for the AGI House Gemini 3 hackathon. 
 ## Tech Stack
 
 - **Frontend**: Next.js 16, React, Tailwind CSS
-- **AI**: Gemini 2.5 Flash via Vercel AI SDK (`@ai-sdk/google`)
+- **AI**: Gemini 3 Pro (`gemini-3-pro-preview`) via Vercel AI SDK (`@ai-sdk/google`)
 - **Search**: Google Search grounding for real-time company research
 - **Validation**: Zod schemas for structured outputs
 - **Language**: TypeScript with strict mode
@@ -118,11 +118,12 @@ The API uses Server-Sent Events (SSE) to stream real-time progress:
 
 ## Key Learnings
 
-### Vercel AI SDK with Gemini
+### Vercel AI SDK with Gemini 3
 
 - Use `stopWhen: stepCountIs(N)` instead of deprecated `maxSteps`
 - Google Search grounding via `google.tools.googleSearch({})`
 - Structured outputs with Zod schemas via `generateObject()`
+- Gemini 3 features: `thinking_level` for reasoning depth, `media_resolution` for vision quality
 
 ### Architecture Decisions
 

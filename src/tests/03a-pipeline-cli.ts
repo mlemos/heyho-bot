@@ -471,8 +471,8 @@ async function runFullPipeline(input: string): Promise<PipelineResult> {
   console.log(`  Summary: ${memo.summary.substring(0, 100)}...`);
   console.log(`  One-liner: ${memo.oneLiner}`);
   console.log(`  Tags: ${memo.tags.join(", ")}`);
-  console.log("\n  Scorecard:");
-  Object.entries(memo.scorecard).forEach(([key, value]) => {
+  console.log("\n  Company Scorecard:");
+  Object.entries(memo.companyScorecard).forEach(([key, value]) => {
     console.log(`    ${key}: ${value}/10`);
   });
 
@@ -640,14 +640,14 @@ async function testMemoGeneration() {
     const hasSummary = memo.summary.length > 50;
     const hasOneLiner = memo.oneLiner.length > 10;
     const hasTags = memo.tags.length > 0;
-    const hasScorecard = memo.scorecard.overall > 0;
+    const hasScorecard = memo.companyScorecard.overall > 0;
     const hasSections = memo.sections.companySummary.length > 50;
 
     console.log("\n📊 Memo Check:");
     console.log(`  Summary: ${hasSummary ? "✅" : "❌"} (${memo.summary.length} chars)`);
     console.log(`  One-liner: ${hasOneLiner ? "✅" : "❌"} ("${memo.oneLiner}")`);
     console.log(`  Tags: ${hasTags ? "✅" : "❌"} (${memo.tags.join(", ")})`);
-    console.log(`  Scorecard: ${hasScorecard ? "✅" : "❌"} (Overall: ${memo.scorecard.overall}/10)`);
+    console.log(`  Scorecard: ${hasScorecard ? "✅" : "❌"} (Overall: ${memo.companyScorecard.overall}/10)`);
     console.log(`  Sections: ${hasSections ? "✅" : "❌"}`);
 
     if (hasSummary && hasOneLiner && hasScorecard) {

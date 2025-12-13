@@ -52,7 +52,7 @@ export interface PipelineProgress {
 
 export async function researchCompanyBasics(companyName: string): Promise<string> {
   const { text } = await generateText({
-    model: google("gemini-2.5-flash"),
+    model: google("gemini-3-pro-preview"),
     tools: {
       google_search: google.tools.googleSearch({}),
     },
@@ -71,7 +71,7 @@ Be thorough and cite specific facts.`,
 
 export async function researchFounders(companyName: string): Promise<string> {
   const { text } = await generateText({
-    model: google("gemini-2.5-flash"),
+    model: google("gemini-3-pro-preview"),
     tools: {
       google_search: google.tools.googleSearch({}),
     },
@@ -89,7 +89,7 @@ Focus on finding specific names and verifiable background info.`,
 
 export async function researchFunding(companyName: string): Promise<string> {
   const { text } = await generateText({
-    model: google("gemini-2.5-flash"),
+    model: google("gemini-3-pro-preview"),
     tools: {
       google_search: google.tools.googleSearch({}),
     },
@@ -108,7 +108,7 @@ Look for specific dollar amounts and investor names.`,
 
 export async function researchProduct(companyName: string): Promise<string> {
   const { text } = await generateText({
-    model: google("gemini-2.5-flash"),
+    model: google("gemini-3-pro-preview"),
     tools: {
       google_search: google.tools.googleSearch({}),
     },
@@ -127,7 +127,7 @@ Focus on product details and any available traction metrics.`,
 
 export async function researchCompetitive(companyName: string): Promise<string> {
   const { text } = await generateText({
-    model: google("gemini-2.5-flash"),
+    model: google("gemini-3-pro-preview"),
     tools: {
       google_search: google.tools.googleSearch({}),
     },
@@ -145,7 +145,7 @@ Identify specific competitor names and differentiation points.`,
 
 export async function researchNews(companyName: string): Promise<string> {
   const { text } = await generateText({
-    model: google("gemini-2.5-flash"),
+    model: google("gemini-3-pro-preview"),
     tools: {
       google_search: google.tools.googleSearch({}),
     },
@@ -240,7 +240,7 @@ ${research.news}
 `;
 
   const { object } = await generateObject({
-    model: google("gemini-2.5-flash"),
+    model: google("gemini-3-pro-preview"),
     schema: CompanyResearchSchema,
     prompt: `Based on the following research about "${companyName}", extract structured information.
 If information is not available, use reasonable defaults or "Unknown".
@@ -282,7 +282,7 @@ export async function generateInvestmentMemo(
   const fundThesisContext = formatFundThesisContext();
 
   const { object } = await generateObject({
-    model: google("gemini-2.5-flash"),
+    model: google("gemini-3-pro-preview"),
     schema: InvestmentMemoSchema,
     prompt: `Generate a professional investment memo for "${companyName}" based on this research:
 
