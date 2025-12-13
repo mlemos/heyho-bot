@@ -61,18 +61,18 @@ interface Message {
 // ===========================================
 
 function PipelineProgress({ status }: { status: PipelineStatus }) {
-  const steps: { key: PipelineStep; label: string; group: string }[] = [
-    { key: "identify", label: "Identify Company", group: "setup" },
-    { key: "crm_check", label: "Check CRM", group: "setup" },
-    { key: "research_basics", label: "Company Info", group: "research" },
-    { key: "research_founders", label: "Founders", group: "research" },
-    { key: "research_funding", label: "Funding", group: "research" },
-    { key: "research_product", label: "Product", group: "research" },
-    { key: "research_competitive", label: "Competition", group: "research" },
-    { key: "research_news", label: "News", group: "research" },
-    { key: "synthesize", label: "Synthesize Data", group: "generate" },
-    { key: "generate_memo", label: "Generate Memo", group: "generate" },
-    { key: "save_crm", label: "Save to CRM", group: "save" },
+  const steps: { key: PipelineStep; label: string; shortLabel: string; group: string }[] = [
+    { key: "identify", label: "Identify Company", shortLabel: "Identify", group: "setup" },
+    { key: "crm_check", label: "Check CRM", shortLabel: "CRM", group: "setup" },
+    { key: "research_basics", label: "Company Info", shortLabel: "Company", group: "research" },
+    { key: "research_founders", label: "Founders", shortLabel: "Founders", group: "research" },
+    { key: "research_funding", label: "Funding", shortLabel: "Funding", group: "research" },
+    { key: "research_product", label: "Product", shortLabel: "Product", group: "research" },
+    { key: "research_competitive", label: "Competition", shortLabel: "Compete", group: "research" },
+    { key: "research_news", label: "News", shortLabel: "News", group: "research" },
+    { key: "synthesize", label: "Synthesize Data", shortLabel: "Synthesize", group: "generate" },
+    { key: "generate_memo", label: "Generate Memo", shortLabel: "Memo", group: "generate" },
+    { key: "save_crm", label: "Save to CRM", shortLabel: "Save", group: "save" },
   ];
 
   const statusIcon = (s: TaskStatus) => {
@@ -98,12 +98,13 @@ function PipelineProgress({ status }: { status: PipelineStatus }) {
       {/* Setup */}
       <div>
         <div className="text-[10px] text-zinc-500 uppercase tracking-wide mb-1">Setup</div>
-        <div className="flex gap-3">
-          {setupSteps.map(({ key, label }) => (
+        <div className="flex flex-wrap gap-2 md:gap-3">
+          {setupSteps.map(({ key, label, shortLabel }) => (
             <div key={key} className="flex items-center gap-1.5 text-xs">
               {statusIcon(status[key])}
               <span className={status[key] === "completed" ? "text-zinc-300" : "text-zinc-500"}>
-                {label}
+                <span className="hidden sm:inline">{label}</span>
+                <span className="sm:hidden">{shortLabel}</span>
               </span>
             </div>
           ))}
@@ -113,12 +114,13 @@ function PipelineProgress({ status }: { status: PipelineStatus }) {
       {/* Research */}
       <div>
         <div className="text-[10px] text-zinc-500 uppercase tracking-wide mb-1">Research</div>
-        <div className="grid grid-cols-3 gap-2">
-          {researchSteps.map(({ key, label }) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1.5">
+          {researchSteps.map(({ key, label, shortLabel }) => (
             <div key={key} className="flex items-center gap-1.5 text-xs">
               {statusIcon(status[key])}
               <span className={status[key] === "completed" ? "text-zinc-300" : "text-zinc-500"}>
-                {label}
+                <span className="hidden sm:inline">{label}</span>
+                <span className="sm:hidden">{shortLabel}</span>
               </span>
             </div>
           ))}
@@ -128,12 +130,13 @@ function PipelineProgress({ status }: { status: PipelineStatus }) {
       {/* Generate */}
       <div>
         <div className="text-[10px] text-zinc-500 uppercase tracking-wide mb-1">Generate</div>
-        <div className="flex gap-3">
-          {generateSteps.map(({ key, label }) => (
+        <div className="flex flex-wrap gap-2 md:gap-3">
+          {generateSteps.map(({ key, label, shortLabel }) => (
             <div key={key} className="flex items-center gap-1.5 text-xs">
               {statusIcon(status[key])}
               <span className={status[key] === "completed" ? "text-zinc-300" : "text-zinc-500"}>
-                {label}
+                <span className="hidden sm:inline">{label}</span>
+                <span className="sm:hidden">{shortLabel}</span>
               </span>
             </div>
           ))}
@@ -144,11 +147,12 @@ function PipelineProgress({ status }: { status: PipelineStatus }) {
       <div>
         <div className="text-[10px] text-zinc-500 uppercase tracking-wide mb-1">Save</div>
         <div className="flex gap-3">
-          {saveSteps.map(({ key, label }) => (
+          {saveSteps.map(({ key, label, shortLabel }) => (
             <div key={key} className="flex items-center gap-1.5 text-xs">
               {statusIcon(status[key])}
               <span className={status[key] === "completed" ? "text-zinc-300" : "text-zinc-500"}>
-                {label}
+                <span className="hidden sm:inline">{label}</span>
+                <span className="sm:hidden">{shortLabel}</span>
               </span>
             </div>
           ))}
@@ -589,25 +593,27 @@ function OpportunityCard({
     <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
       {/* Header */}
       <div
-        className="p-4 cursor-pointer hover:bg-zinc-800/50 transition-colors"
+        className="p-3 md:p-4 cursor-pointer hover:bg-zinc-800/50 transition-colors active:bg-zinc-800/70"
         onClick={onToggle}
       >
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-semibold text-white">{research.company.name}</h3>
-              <span className="text-xs px-2 py-0.5 bg-zinc-800 rounded-full text-zinc-400">
+        {/* Title and Stage - Stack on very small screens */}
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-base md:text-lg font-semibold text-white truncate">{research.company.name}</h3>
+              <span className="text-xs px-2 py-0.5 bg-zinc-800 rounded-full text-zinc-400 flex-shrink-0">
                 {research.company.stage}
               </span>
             </div>
-            <p className="text-sm text-zinc-400 mt-1">{memo.oneLiner}</p>
+            <p className="text-xs md:text-sm text-zinc-400 mt-1 line-clamp-2">{memo.oneLiner}</p>
           </div>
-          {/* 3 Score Indicators */}
-          <div className="flex items-center gap-3">
+
+          {/* 3 Score Indicators - More compact on mobile */}
+          <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
             {/* Company Score */}
             <div className="text-center">
               <div
-                className={`w-11 h-11 rounded-full flex items-center justify-center text-xs font-bold ${
+                className={`w-10 h-10 md:w-11 md:h-11 rounded-full flex items-center justify-center text-xs font-bold ${
                   memo.companyScorecard.overall >= 8
                     ? "bg-green-500/20 text-green-400"
                     : memo.companyScorecard.overall >= 6
@@ -617,12 +623,12 @@ function OpportunityCard({
               >
                 {memo.companyScorecard.overall.toFixed(1)}
               </div>
-              <span className="text-[10px] text-zinc-500 mt-0.5 block">Company</span>
+              <span className="text-[9px] md:text-[10px] text-zinc-500 mt-0.5 block">Company</span>
             </div>
             {/* Fund Fit Score */}
             <div className="text-center">
               <div
-                className={`w-11 h-11 rounded-full flex items-center justify-center text-xs font-bold ${
+                className={`w-10 h-10 md:w-11 md:h-11 rounded-full flex items-center justify-center text-xs font-bold ${
                   memo.fundFit.score >= 8
                     ? "bg-blue-500/20 text-blue-400"
                     : memo.fundFit.score >= 6
@@ -634,12 +640,12 @@ function OpportunityCard({
               >
                 {memo.fundFit.score.toFixed(1)}
               </div>
-              <span className="text-[10px] text-zinc-500 mt-0.5 block">Fund Fit</span>
+              <span className="text-[9px] md:text-[10px] text-zinc-500 mt-0.5 block">Fund</span>
             </div>
             {/* Partner Fit Score */}
             <div className="text-center">
               <div
-                className={`w-11 h-11 rounded-full flex items-center justify-center text-xs font-bold ${
+                className={`w-10 h-10 md:w-11 md:h-11 rounded-full flex items-center justify-center text-xs font-bold ${
                   memo.partnerFit.overallFitScore >= 8
                     ? "bg-purple-500/20 text-purple-400"
                     : memo.partnerFit.overallFitScore >= 6
@@ -651,14 +657,14 @@ function OpportunityCard({
               >
                 {memo.partnerFit.overallFitScore.toFixed(1)}
               </div>
-              <span className="text-[10px] text-zinc-500 mt-0.5 block">Partners</span>
+              <span className="text-[9px] md:text-[10px] text-zinc-500 mt-0.5 block">Partners</span>
             </div>
           </div>
         </div>
 
-        {/* Tags */}
+        {/* Tags - Fewer on mobile */}
         <div className="flex flex-wrap gap-1 mt-3">
-          {memo.tags.slice(0, 5).map((tag) => (
+          {memo.tags.slice(0, 4).map((tag) => (
             <span
               key={tag}
               className="text-xs px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded-full"
@@ -666,24 +672,29 @@ function OpportunityCard({
               {tag}
             </span>
           ))}
+          {memo.tags.length > 4 && (
+            <span className="text-xs px-2 py-0.5 bg-zinc-800 text-zinc-500 rounded-full">
+              +{memo.tags.length - 4}
+            </span>
+          )}
         </div>
 
-        {/* Quick Links */}
-        <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
+        {/* Quick Links - Larger touch targets on mobile */}
+        <div className="flex flex-wrap gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
           {research.company.website && (
             <a
               href={research.company.website}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-300 transition-colors"
+              className="text-xs px-3 py-2 md:py-1.5 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 rounded-lg text-zinc-300 transition-colors touch-manipulation"
             >
               Website
             </a>
           )}
-          <button className="text-xs px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-300 transition-colors">
+          <button className="text-xs px-3 py-2 md:py-1.5 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 rounded-lg text-zinc-300 transition-colors touch-manipulation">
             View in Attio
           </button>
-          <button className="text-xs px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-300 transition-colors">
+          <button className="text-xs px-3 py-2 md:py-1.5 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 rounded-lg text-zinc-300 transition-colors touch-manipulation">
             Full Memo
           </button>
         </div>
@@ -691,7 +702,7 @@ function OpportunityCard({
 
       {/* Expanded Content */}
       {expanded && (
-        <div className="border-t border-zinc-800 p-4 space-y-4">
+        <div className="border-t border-zinc-800 p-3 md:p-4 space-y-4">
           {/* Company Scorecard */}
           <div>
             <h4 className="text-sm font-medium text-zinc-300 mb-3">Company Scorecard</h4>
@@ -704,8 +715,8 @@ function OpportunityCard({
             <FundFitCard fundFit={memo.fundFit} />
           </div>
 
-          {/* Key Info */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Key Info - Single column on very small screens */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
             <div>
               <h4 className="text-xs text-zinc-500 uppercase tracking-wide mb-1">Industry</h4>
               <p className="text-sm text-zinc-300">{research.company.industry}</p>
@@ -734,7 +745,7 @@ function OpportunityCard({
                 <div key={i} className="text-sm">
                   <span className="text-zinc-300 font-medium">{founder.name}</span>
                   <span className="text-zinc-500"> - {founder.role}</span>
-                  <p className="text-zinc-500 text-xs mt-0.5">{founder.background}</p>
+                  <p className="text-zinc-500 text-xs mt-0.5 line-clamp-2">{founder.background}</p>
                 </div>
               ))}
             </div>
@@ -782,13 +793,13 @@ function ProcessingCard({
   pipelineStatus: PipelineStatus;
 }) {
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 md:p-4">
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
           <span className="animate-spin text-blue-400">○</span>
         </div>
-        <div>
-          <h3 className="text-lg font-semibold text-white">{company}</h3>
+        <div className="min-w-0">
+          <h3 className="text-base md:text-lg font-semibold text-white truncate">{company}</h3>
           <p className="text-xs text-zinc-500">Processing...</p>
         </div>
       </div>
@@ -816,6 +827,9 @@ const initialPipelineStatus: PipelineStatus = {
   save_crm: "pending",
 };
 
+// Mobile tab type
+type MobileTab = "chat" | "results";
+
 export default function Home() {
   const [input, setInput] = useState("");
   const [attachments, setAttachments] = useState<AttachedFile[]>([]);
@@ -826,10 +840,21 @@ export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingCompany, setProcessingCompany] = useState("");
   const [pipelineStatus, setPipelineStatus] = useState<PipelineStatus>(initialPipelineStatus);
+  const [mobileTab, setMobileTab] = useState<MobileTab>("chat");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounterRef = useRef(0); // Track drag enter/leave for nested elements
+
+  // Auto-switch to results tab on mobile when processing completes
+  useEffect(() => {
+    if (!isProcessing && opportunities.length > 0) {
+      // Only auto-switch if we just finished processing (indicated by expandedId being set)
+      if (expandedId) {
+        setMobileTab("results");
+      }
+    }
+  }, [isProcessing, opportunities.length, expandedId]);
 
   // File handling callbacks
   const handleFilesAdded = useCallback((files: AttachedFile[]) => {
@@ -1093,10 +1118,53 @@ export default function Home() {
   };
 
   return (
-    <main className="flex h-screen">
+    <main className="flex flex-col md:flex-row h-screen">
+      {/* Mobile Tab Bar - Only visible on mobile */}
+      <div className="md:hidden flex border-b border-zinc-800 bg-zinc-900">
+        <button
+          onClick={() => setMobileTab("chat")}
+          className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
+            mobileTab === "chat"
+              ? "text-blue-400 border-b-2 border-blue-400 bg-zinc-800/50"
+              : "text-zinc-400 hover:text-zinc-300"
+          }`}
+        >
+          <span className="flex items-center justify-center gap-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            Chat
+          </span>
+        </button>
+        <button
+          onClick={() => setMobileTab("results")}
+          className={`flex-1 py-3 px-4 text-sm font-medium transition-colors relative ${
+            mobileTab === "results"
+              ? "text-blue-400 border-b-2 border-blue-400 bg-zinc-800/50"
+              : "text-zinc-400 hover:text-zinc-300"
+          }`}
+        >
+          <span className="flex items-center justify-center gap-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            Results
+            {(opportunities.length > 0 || isProcessing) && (
+              <span className={`ml-1 px-1.5 py-0.5 text-xs rounded-full ${
+                isProcessing ? "bg-blue-500/20 text-blue-400 animate-pulse" : "bg-zinc-700 text-zinc-300"
+              }`}>
+                {isProcessing ? "..." : opportunities.length}
+              </span>
+            )}
+          </span>
+        </button>
+      </div>
+
       {/* Left Panel - Chat (Drop Zone) */}
       <div
-        className="w-1/2 border-r border-zinc-800 flex flex-col relative"
+        className={`${
+          mobileTab === "chat" ? "flex" : "hidden"
+        } md:flex w-full md:w-1/2 border-r border-zinc-800 flex-col relative flex-1`}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onDragOver={handleDragOver}
@@ -1105,14 +1173,14 @@ export default function Home() {
         {/* Drop Overlay */}
         {isDraggingOver && (
           <div className="absolute inset-0 bg-blue-500/10 border-2 border-dashed border-blue-500 z-50 flex items-center justify-center backdrop-blur-sm">
-            <div className="bg-zinc-900/90 rounded-xl p-8 text-center shadow-2xl">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-500/20 flex items-center justify-center">
-                <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-zinc-900/90 rounded-xl p-6 md:p-8 text-center shadow-2xl mx-4">
+              <div className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-3 md:mb-4 rounded-full bg-blue-500/20 flex items-center justify-center">
+                <svg className="w-6 h-6 md:w-8 md:h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
               </div>
-              <p className="text-lg font-medium text-white">Drop files to analyze</p>
-              <p className="text-sm text-zinc-400 mt-1">PDF, images, docs, audio, video...</p>
+              <p className="text-base md:text-lg font-medium text-white">Drop files to analyze</p>
+              <p className="text-xs md:text-sm text-zinc-400 mt-1">PDF, images, docs, audio, video...</p>
             </div>
           </div>
         )}
@@ -1148,18 +1216,18 @@ export default function Home() {
           }}
         />
 
-        {/* Header */}
-        <div className="p-4 border-b border-zinc-800">
+        {/* Header - Hidden on mobile (we have tab bar) */}
+        <div className="hidden md:block p-4 border-b border-zinc-800">
           <h1 className="text-xl font-bold">VC Associate</h1>
           <p className="text-sm text-zinc-500">AI-powered investment research</p>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4">
           {messages.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-zinc-500">Enter a company name or drop files to start</p>
-              <p className="text-zinc-600 text-sm mt-2">
+            <div className="text-center py-8 md:py-12 px-4">
+              <p className="text-zinc-500 text-sm md:text-base">Enter a company name or drop files to start</p>
+              <p className="text-zinc-600 text-xs md:text-sm mt-2">
                 Try: &quot;Anthropic&quot;, &quot;Mistral AI&quot;, or drop a pitch deck
               </p>
             </div>
@@ -1171,7 +1239,7 @@ export default function Home() {
               className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                className={`max-w-[85%] md:max-w-[80%] rounded-lg px-3 md:px-4 py-2 ${
                   msg.role === "user"
                     ? "bg-blue-600 text-white"
                     : "bg-zinc-800 text-zinc-300"
@@ -1189,7 +1257,7 @@ export default function Home() {
         </div>
 
         {/* Input */}
-        <div className="p-4 border-t border-zinc-800 space-y-3">
+        <div className="p-3 md:p-4 border-t border-zinc-800 space-y-3">
           {/* Attachment List */}
           {attachments.length > 0 && (
             <AttachmentList
@@ -1202,12 +1270,12 @@ export default function Home() {
 
           {/* Input Form */}
           <form onSubmit={handleSubmit} className="flex gap-2">
-            {/* Attachment Button (click to browse) */}
+            {/* Attachment Button (click to browse) - Larger touch target on mobile */}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isProcessing}
-              className="p-2 rounded-lg transition-colors bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-300 disabled:opacity-50"
+              className="p-3 md:p-2 rounded-lg transition-colors bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-300 disabled:opacity-50 touch-manipulation"
               title="Attach files"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1220,33 +1288,47 @@ export default function Home() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={attachments.length > 0 ? "Add context (optional)..." : "Enter company name or drop files..."}
+              placeholder={attachments.length > 0 ? "Add context..." : "Company name or files..."}
               disabled={isProcessing}
-              className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 disabled:opacity-50"
+              className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-3 md:px-4 py-2.5 md:py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 disabled:opacity-50 text-base md:text-sm"
             />
 
-            {/* Submit Button */}
+            {/* Submit Button - Larger touch target on mobile */}
             <button
               type="submit"
               disabled={isProcessing || (!input.trim() && attachments.length === 0)}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:text-zinc-500 rounded-lg text-white font-medium transition-colors"
+              className="px-4 py-2.5 md:py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:text-zinc-500 rounded-lg text-white font-medium transition-colors touch-manipulation"
             >
-              {isProcessing ? "Processing..." : "Research"}
+              {isProcessing ? (
+                <span className="flex items-center gap-1">
+                  <span className="animate-spin">○</span>
+                  <span className="hidden md:inline">...</span>
+                </span>
+              ) : (
+                <span className="flex items-center gap-1">
+                  <svg className="w-5 h-5 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <span className="hidden md:inline">Research</span>
+                </span>
+              )}
             </button>
           </form>
         </div>
       </div>
 
       {/* Right Panel - Opportunities */}
-      <div className="w-1/2 flex flex-col bg-zinc-950">
-        {/* Header */}
-        <div className="p-4 border-b border-zinc-800">
+      <div className={`${
+        mobileTab === "results" ? "flex" : "hidden"
+      } md:flex w-full md:w-1/2 flex-col bg-zinc-950 flex-1`}>
+        {/* Header - Hidden on mobile (we have tab bar) */}
+        <div className="hidden md:block p-4 border-b border-zinc-800">
           <h2 className="text-lg font-semibold">Opportunities</h2>
           <p className="text-sm text-zinc-500">{opportunities.length} researched</p>
         </div>
 
         {/* Opportunities List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4">
           {/* Processing Card */}
           {isProcessing && processingCompany && (
             <ProcessingCard
@@ -1266,8 +1348,11 @@ export default function Home() {
           ))}
 
           {!isProcessing && opportunities.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-zinc-600">No opportunities yet</p>
+            <div className="text-center py-8 md:py-12">
+              <p className="text-zinc-600 text-sm md:text-base">No opportunities yet</p>
+              <p className="text-zinc-700 text-xs mt-2 md:hidden">
+                Switch to Chat tab to start researching
+              </p>
             </div>
           )}
         </div>

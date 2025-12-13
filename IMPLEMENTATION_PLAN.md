@@ -1,8 +1,8 @@
 # Implementation Plan: VC Associate
 
-## Status: Phase 2.1 Complete → Phase 2.2 Pending
+## Status: Phase 2 Complete
 
-The core MVP plus multi-modal support is functional with the following features working:
+The core MVP plus multi-modal support and mobile UX is functional with the following features working:
 - Gemini 3 Pro (`gemini-3-pro-preview`) + Google Search grounding
 - Parallel research pipeline (6 concurrent queries)
 - Three-way scoring (Company, Fund Fit, Partner Fit)
@@ -11,6 +11,7 @@ The core MVP plus multi-modal support is functional with the following features 
 - **Multi-modal file input** (drag-drop any file type)
 - **Smart file triage** (AI classifies files and routes content to research areas)
 - **Attachment references** (memo documents what files were used)
+- **Mobile-responsive UI** (tab navigation, touch-optimized inputs)
 
 ---
 
@@ -248,25 +249,26 @@ components/
   - [x] Handle mixed input (text + files)
   - [x] Display attachment references in expanded opportunity card
 
-### Phase 2.2: Mobile-Responsive UX
+### Phase 2.2: Mobile-Responsive UX ✅ COMPLETE
 
-- [ ] **Component Extraction**
-  - [ ] Extract chat components from `page.tsx`
-  - [ ] Extract opportunity components from `page.tsx`
-  - [ ] Extract score card components from `page.tsx`
-  - [ ] Create upload components
+- [x] **Responsive Layout**
+  - [x] Add mobile tab navigation between Chat and Results panels
+  - [x] Stack panels on mobile, side-by-side on desktop (md: breakpoint)
+  - [x] Auto-switch to Results tab when research completes
+  - [x] Add viewport meta for mobile scaling
 
-- [ ] **Responsive Layout**
-  - [ ] Create `ResponsiveLayout` wrapper component
-  - [ ] Create `MobileTabBar` for panel switching
-  - [ ] Add responsive breakpoint styles
-  - [ ] Test on various screen sizes
+- [x] **Mobile Optimizations**
+  - [x] Increase touch target sizes (min 44px buttons)
+  - [x] Add `touch-manipulation` for faster tap response
+  - [x] Add `active:` states for touch feedback
+  - [x] Shorter labels on mobile for pipeline progress
+  - [x] Responsive padding and spacing throughout
 
-- [ ] **Mobile Optimizations**
-  - [ ] Add mobile attachment picker (action sheet)
-  - [ ] Increase touch target sizes
-  - [ ] Add swipe gestures for cards
-  - [ ] Optimize for mobile keyboards
+- [x] **Component Updates**
+  - [x] OpportunityCard: Stack layout on small screens, compact scores
+  - [x] PipelineProgress: 2-column grid on mobile, 3 on desktop
+  - [x] ProcessingCard: Truncate long company names
+  - [x] Input area: Larger inputs and icon-only button on mobile
 
 ---
 
