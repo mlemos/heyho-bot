@@ -14,6 +14,12 @@ import {
   type InvestmentMemo,
   type StrategicPartner,
 } from "../types/schemas";
+
+// Schema for AI generation - excludes fields that are added programmatically
+const InvestmentMemoGenerationSchema = InvestmentMemoSchema.omit({
+  attachmentReferences: true,
+  infographicBase64: true,
+});
 import { getStrategicPartners } from "../config/strategic-partners";
 import { formatFundThesisContext } from "../config/fund-thesis";
 
@@ -22,6 +28,17 @@ import { formatFundThesisContext } from "../config/fund-thesis";
 // ===========================================
 
 export type ResearchArea = "basics" | "founders" | "funding" | "product" | "competitive" | "news";
+
+export interface TokenUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
+export interface ResearchResultWithUsage {
+  text: string;
+  usage: TokenUsage;
+}
 
 export interface ResearchProgress {
   area: ResearchArea;
@@ -37,6 +54,7 @@ export interface ParallelResearchResults {
   product: string;
   competitive: string;
   news: string;
+  totalUsage?: TokenUsage;
 }
 
 export interface PipelineProgress {
@@ -73,9 +91,9 @@ Now search for additional/updated information:
 `;
 }
 
-export async function researchCompanyBasics(companyName: string, fileContext?: string): Promise<string> {
+export async function researchCompanyBasics(companyName: string, fileContext?: string): Promise<ResearchResultWithUsage> {
   const contextPrefix = buildContextPrefix(fileContext);
-  const { text } = await generateText({
+  const { text, usage } = await generateText({
     model: google("gemini-3-pro-preview"),
     tools: {
       google_search: google.tools.googleSearch({}),
@@ -90,12 +108,19 @@ export async function researchCompanyBasics(companyName: string, fileContext?: s
 
 Be thorough and cite specific facts.`,
   });
-  return text;
+  return {
+    text,
+    usage: {
+      promptTokens: usage?.promptTokens || 0,
+      completionTokens: usage?.completionTokens || 0,
+      totalTokens: usage?.totalTokens || 0,
+    },
+  };
 }
 
-export async function researchFounders(companyName: string, fileContext?: string): Promise<string> {
+export async function researchFounders(companyName: string, fileContext?: string): Promise<ResearchResultWithUsage> {
   const contextPrefix = buildContextPrefix(fileContext);
-  const { text } = await generateText({
+  const { text, usage } = await generateText({
     model: google("gemini-3-pro-preview"),
     tools: {
       google_search: google.tools.googleSearch({}),
@@ -109,12 +134,19 @@ export async function researchFounders(companyName: string, fileContext?: string
 
 Focus on finding specific names and verifiable background info.`,
   });
-  return text;
+  return {
+    text,
+    usage: {
+      promptTokens: usage?.promptTokens || 0,
+      completionTokens: usage?.completionTokens || 0,
+      totalTokens: usage?.totalTokens || 0,
+    },
+  };
 }
 
-export async function researchFunding(companyName: string, fileContext?: string): Promise<string> {
+export async function researchFunding(companyName: string, fileContext?: string): Promise<ResearchResultWithUsage> {
   const contextPrefix = buildContextPrefix(fileContext);
-  const { text } = await generateText({
+  const { text, usage } = await generateText({
     model: google("gemini-3-pro-preview"),
     tools: {
       google_search: google.tools.googleSearch({}),
@@ -129,12 +161,19 @@ export async function researchFunding(companyName: string, fileContext?: string)
 
 Look for specific dollar amounts and investor names.`,
   });
-  return text;
+  return {
+    text,
+    usage: {
+      promptTokens: usage?.promptTokens || 0,
+      completionTokens: usage?.completionTokens || 0,
+      totalTokens: usage?.totalTokens || 0,
+    },
+  };
 }
 
-export async function researchProduct(companyName: string, fileContext?: string): Promise<string> {
+export async function researchProduct(companyName: string, fileContext?: string): Promise<ResearchResultWithUsage> {
   const contextPrefix = buildContextPrefix(fileContext);
-  const { text } = await generateText({
+  const { text, usage } = await generateText({
     model: google("gemini-3-pro-preview"),
     tools: {
       google_search: google.tools.googleSearch({}),
@@ -149,12 +188,19 @@ export async function researchProduct(companyName: string, fileContext?: string)
 
 Focus on product details and any available traction metrics.`,
   });
-  return text;
+  return {
+    text,
+    usage: {
+      promptTokens: usage?.promptTokens || 0,
+      completionTokens: usage?.completionTokens || 0,
+      totalTokens: usage?.totalTokens || 0,
+    },
+  };
 }
 
-export async function researchCompetitive(companyName: string, fileContext?: string): Promise<string> {
+export async function researchCompetitive(companyName: string, fileContext?: string): Promise<ResearchResultWithUsage> {
   const contextPrefix = buildContextPrefix(fileContext);
-  const { text } = await generateText({
+  const { text, usage } = await generateText({
     model: google("gemini-3-pro-preview"),
     tools: {
       google_search: google.tools.googleSearch({}),
@@ -168,12 +214,19 @@ export async function researchCompetitive(companyName: string, fileContext?: str
 
 Identify specific competitor names and differentiation points.`,
   });
-  return text;
+  return {
+    text,
+    usage: {
+      promptTokens: usage?.promptTokens || 0,
+      completionTokens: usage?.completionTokens || 0,
+      totalTokens: usage?.totalTokens || 0,
+    },
+  };
 }
 
-export async function researchNews(companyName: string, fileContext?: string): Promise<string> {
+export async function researchNews(companyName: string, fileContext?: string): Promise<ResearchResultWithUsage> {
   const contextPrefix = buildContextPrefix(fileContext);
-  const { text } = await generateText({
+  const { text, usage } = await generateText({
     model: google("gemini-3-pro-preview"),
     tools: {
       google_search: google.tools.googleSearch({}),
@@ -188,7 +241,14 @@ export async function researchNews(companyName: string, fileContext?: string): P
 
 Focus on news from the last 6-12 months.`,
   });
-  return text;
+  return {
+    text,
+    usage: {
+      promptTokens: usage?.promptTokens || 0,
+      completionTokens: usage?.completionTokens || 0,
+      totalTokens: usage?.totalTokens || 0,
+    },
+  };
 }
 
 // ===========================================
@@ -197,7 +257,7 @@ Focus on news from the last 6-12 months.`,
 
 export async function runParallelResearch(
   companyName: string,
-  onProgress?: (area: ResearchArea, status: ResearchProgress["status"]) => void,
+  onProgress?: (area: ResearchArea, status: ResearchProgress["status"], tokens?: number) => void,
   fileContext?: FileContext
 ): Promise<ParallelResearchResults> {
   // Each research function gets its targeted context from files
@@ -216,15 +276,22 @@ export async function runParallelResearch(
 
       try {
         const result = await fn();
-        onProgress?.(area, "completed");
-        return { area, result, error: null };
+        onProgress?.(area, "completed", result.usage.totalTokens);
+        return { area, text: result.text, usage: result.usage, error: null };
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : "Unknown error";
         onProgress?.(area, "error");
-        return { area, result: "", error: errorMsg };
+        return { area, text: "", usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 }, error: errorMsg };
       }
     })
   );
+
+  // Accumulate total usage
+  const totalUsage: TokenUsage = {
+    promptTokens: 0,
+    completionTokens: 0,
+    totalTokens: 0,
+  };
 
   const aggregated: ParallelResearchResults = {
     basics: "",
@@ -235,9 +302,14 @@ export async function runParallelResearch(
     news: "",
   };
 
-  results.forEach(({ area, result }) => {
-    aggregated[area] = result || "";
+  results.forEach(({ area, text, usage }) => {
+    aggregated[area] = text || "";
+    totalUsage.promptTokens += usage.promptTokens;
+    totalUsage.completionTokens += usage.completionTokens;
+    totalUsage.totalTokens += usage.totalTokens;
   });
+
+  aggregated.totalUsage = totalUsage;
 
   return aggregated;
 }
@@ -306,86 +378,259 @@ function formatStrategicPartnersContext(partners: StrategicPartner[]): string {
 
 export async function generateInvestmentMemo(
   companyName: string,
-  research: CompanyResearch
+  research: CompanyResearch,
+  rawResearch?: ParallelResearchResults
 ): Promise<InvestmentMemo> {
   const strategicPartners = getStrategicPartners();
   const partnersContext = formatStrategicPartnersContext(strategicPartners);
   const fundThesisContext = formatFundThesisContext();
 
+  // Build raw research context if available
+  const rawResearchContext = rawResearch
+    ? `
+## RAW RESEARCH (Use for detailed sections with citations)
+
+### Company Basics Research
+${rawResearch.basics}
+
+### Founders Research
+${rawResearch.founders}
+
+### Funding Research
+${rawResearch.funding}
+
+### Product & Traction Research
+${rawResearch.product}
+
+### Competitive Landscape Research
+${rawResearch.competitive}
+
+### Recent News Research
+${rawResearch.news}
+
+---
+`
+    : "";
+
   const { object } = await generateObject({
     model: google("gemini-3-pro-preview"),
-    schema: InvestmentMemoSchema,
-    prompt: `Generate a professional investment memo for "${companyName}" based on this research:
+    schema: InvestmentMemoGenerationSchema,
+    prompt: `Generate a professional, DETAILED investment memo for "${companyName}".
 
+## STRUCTURED DATA (Use for scores and quick facts)
 ${JSON.stringify(research, null, 2)}
+
+${rawResearchContext}
 
 ${fundThesisContext}
 
 ## Strategic Partners
-The fund has the following strategic partners:
-
 ${partnersContext}
 
 ---
 
-Create a comprehensive memo with THREE SEPARATE ANALYSES:
+# INSTRUCTIONS
+
+Create a comprehensive investment memo. **Each section should be DETAILED (2-4 paragraphs) with INLINE CITATIONS.**
+
+Format citations as: [Source Name, Date] - e.g., [TechCrunch, Dec 2024] or [Company Website]
 
 ## 1. EXECUTIVE SUMMARY
-- 2-3 sentence summary of the opportunity
+- 3-4 sentence summary of the opportunity, including key metrics and why it's interesting
 
-## 2. DETAILED SECTIONS
-   - Company Summary
-   - Founder Profiles
-   - Investor Analysis
-   - Funding History
-   - Momentum Analysis
-   - Competitive Landscape
-   - Thesis Alignment
-   - Strategic Synergies
-   - Risks and Flaws
+## 2. DETAILED SECTIONS (Each should be 2-4 paragraphs with citations)
 
-## 3. COMPANY SCORECARD (Objective company quality - independent of our fund)
-Rate 0.0-10.0 for each (use one decimal place, e.g., 7.5):
-- **Team**: Quality of founding team and leadership
-- **Market**: Market size and opportunity
-- **Product**: Product quality and differentiation
-- **Traction**: Current traction and growth metrics
-- **Competition**: Competitive position and moat
-- **Overall**: Overall company score
+### Company Summary
+- What does the company do? Include founding year, mission, and key products.
+- What problem do they solve and for whom?
+- What is their business model?
+- Cite sources for key facts.
 
-## 4. FUND FIT (How well this matches OUR fund's thesis)
-- **Score**: Overall fit with our fund (0.0-10.0, use one decimal place)
-- **Stage fit**: perfect/good/acceptable/outside
-- **Sector fit**: core/adjacent/exploratory/outside
-- **Geography fit**: target/acceptable/challenging
-- **Check size fit**: ideal/stretch/too_small/too_large
-- **Rationale**: Why this is/isn't a good fit for our fund
-- **Aligned theses**: Which of our investment theses does this align with?
-- **Concerns**: Any concerns about fit
+### Founder Profiles
+- For each founder: full background, previous roles, education, notable achievements
+- Why is this team uniquely positioned to win?
+- Cite LinkedIn profiles, press coverage, etc.
 
-## 5. PARTNER FIT (How well this aligns with our strategic partners)
-- Overall fit level (excellent/good/moderate/limited)
-- Overall fit score (0.0-10.0, use one decimal place)
-- Primary category for this opportunity
-- Secondary categories
-- For EACH strategic partner (${strategicPartners.map((p) => p.name).join(", ")}):
-  - Match level (high/medium/low/none)
-  - Match score (0.0-10.0, use one decimal place)
-  - Which specific interests match
-  - Which specific markets overlap
-  - Rationale for the match
-  - Potential synergy opportunities
-- Top 3 partner collaboration opportunities
-- Strategic narrative explaining the overall fit
+### Investor Analysis
+- Who has invested? Detail the investors and their track record.
+- What does investor quality signal about the company?
+- Any notable angels or strategic investors?
+
+### Funding History
+- Complete funding timeline with amounts, dates, and lead investors
+- Current valuation if known
+- How does this compare to peers?
+
+### Momentum Analysis
+- Recent news, launches, partnerships, customer wins
+- Growth metrics if available
+- Hiring signals, expansion plans
+- Include dates and sources
+
+### Competitive Landscape
+- Who are the main competitors? Describe each briefly.
+- How does the company differentiate?
+- What is their moat or competitive advantage?
+- Market size and dynamics
+
+### Thesis Alignment
+- How does this fit our fund's investment thesis?
+- Which of our focus areas does this address?
+
+### Strategic Synergies
+- Potential portfolio company synergies
+- Strategic partner opportunities
+- Value-add we can provide
+
+### Risks and Flaws
+- Key risks and concerns (be specific, not generic)
+- What could go wrong?
+- Red flags or areas needing due diligence
+
+## 3. COMPANY SCORECARD (0.0-10.0 scale)
+- Team, Market, Product, Traction, Competition, Overall
+- Use decimal scores (e.g., 7.5)
+
+## 4. FUND FIT (0.0-10.0 scale)
+- Score, Stage fit, Sector fit, Geography fit, Check size fit
+- Rationale, Aligned theses, Concerns
+
+## 5. PARTNER FIT
+- Analyze fit with each strategic partner: ${strategicPartners.map((p) => p.name).join(", ")}
+- Include match scores and specific synergy opportunities
 
 ## 6. ONE-LINER
 - Max 15 words pitch
 
 ## 7. TAGS
-- Categorization tags (e.g., "AI", "B2B", "Seed", etc.)
+- Categorization tags
 
-Be thorough but concise. Keep the three analyses (Company, Fund Fit, Partner Fit) clearly separate.`,
+## 8. SOURCES
+- List ALL sources cited in the memo
+- Include: title, source name, URL if available, date if known
+- Track which sections used each source
+
+**IMPORTANT**: Be thorough and specific. Avoid generic statements. Include real data, names, dates, and amounts wherever possible. Every factual claim should have a citation.`,
   });
 
-  return object;
+  // Cast to InvestmentMemo - the omitted fields are optional and will be added by the caller
+  return object as InvestmentMemo;
+}
+
+// ===========================================
+// Infographic Generation
+// ===========================================
+
+/**
+ * Generate an infographic image for the investment opportunity using Gemini
+ */
+export async function generateInfographic(
+  companyName: string,
+  research: CompanyResearch,
+  memo: InvestmentMemo
+): Promise<string | null> {
+  try {
+    // Build a detailed prompt for the infographic
+    const prompt = buildInfographicPrompt(companyName, research, memo);
+
+    // Use Gemini 3 Pro Image (Nano Banana Pro) for professional infographic generation
+    // - Advanced text rendering for legible labels and scores
+    // - Optimized for professional asset production (diagrams, infographics)
+    // - Supports high-resolution output (1K, 2K, 4K)
+    const result = await generateText({
+      model: google("gemini-3-pro-image-preview"),
+      providerOptions: {
+        google: {
+          responseModalities: ["TEXT", "IMAGE"],
+        },
+      },
+      prompt,
+    });
+
+    // Log what we got back
+    console.log("Gemini response - text length:", result.text?.length || 0);
+    console.log("Gemini response - files count:", result.files?.length || 0);
+
+    // Extract the generated image from files
+    if (result.files && result.files.length > 0) {
+      for (const file of result.files) {
+        console.log("File mediaType:", file.mediaType, "base64 length:", file.base64?.length || 0);
+        if (file.mediaType?.startsWith("image/")) {
+          // File already has base64 property
+          return `data:${file.mediaType};base64,${file.base64}`;
+        }
+      }
+    }
+
+    console.warn("No image generated by Gemini - files:", JSON.stringify(result.files || []));
+    return null;
+  } catch (error) {
+    console.error("Error generating infographic:", error);
+    return null;
+  }
+}
+
+/**
+ * Build a detailed prompt for infographic generation
+ */
+function buildInfographicPrompt(
+  companyName: string,
+  research: CompanyResearch,
+  memo: InvestmentMemo
+): string {
+  const today = new Date().toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  // Format the full memo content
+  const memoContent = `
+# ${companyName}
+**${research.company.industry}** | **${research.company.stage}** | ${today}
+
+## One-Liner
+${memo.oneLiner}
+
+## Summary
+${memo.summary}
+
+## Scores (out of 10)
+- Overall: ${memo.companyScorecard.overall.toFixed(1)}
+- Team: ${memo.companyScorecard.team.toFixed(1)}
+- Market: ${memo.companyScorecard.market.toFixed(1)}
+- Product: ${memo.companyScorecard.product.toFixed(1)}
+- Traction: ${memo.companyScorecard.traction.toFixed(1)}
+- Competition: ${memo.companyScorecard.competition.toFixed(1)}
+- Fund Fit: ${memo.fundFit.score.toFixed(1)}
+
+## Founders
+${research.founders.map(f => `- ${f.name} (${f.role}): ${f.background}`).join("\n")}
+
+## Funding
+- Total Raised: ${research.funding.totalRaised}
+- Last Round: ${research.funding.lastRound || "N/A"}
+- Investors: ${research.funding.investors.join(", ")}
+
+## Company Overview
+${memo.sections.companySummary}
+
+## Competitive Landscape
+${memo.sections.competitiveLandscape}
+
+## Thesis Alignment
+${memo.sections.thesisAlignment}
+
+## Risks
+${memo.sections.risksAndFlaws}
+
+## Tags
+${memo.tags.join(", ")}
+`;
+
+  return `Create an infographic version of this investment memo in LANDSCAPE format:
+
+${memoContent}
+
+Generate a visually appealing, professional infographic image in landscape orientation that captures the key information from this memo.`;
 }

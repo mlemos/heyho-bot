@@ -4,6 +4,12 @@
  * Handles the full VC research pipeline with streaming progress updates.
  * Supports both text-only and multi-modal (text + files) input.
  * Uses Server-Sent Events (SSE) to stream progress to the client.
+ *
+ * Attio Flow:
+ * 1. Research always runs fresh (company existing or not)
+ * 2. Upsert company record in Attio
+ * 3. Create Investment Opportunity linked to company
+ * 4. Attach memo as note to the opportunity
  */
 
 import { NextRequest } from "next/server";
@@ -11,6 +17,7 @@ import {
   runParallelResearch,
   synthesizeResearch,
   generateInvestmentMemo,
+  generateInfographic,
   type ResearchArea,
   type FileContext,
 } from "@/src/lib/research";
@@ -26,18 +33,27 @@ import type {
   FileTriageResult,
   AttachmentReference,
 } from "@/src/types/schemas";
+import {
+  isAttioConfigured,
+  upsertCompany,
+  createInvestmentOpportunity,
+  attachOpportunityNote,
+} from "@/src/integrations/attio";
 
 // ===========================================
 // Types
 // ===========================================
 
 interface ProgressEvent {
-  type: "progress" | "research" | "result" | "error";
+  type: "progress" | "research" | "result" | "error" | "metrics";
   stage?: string;
   area?: ResearchArea;
   status?: string;
   message?: string;
   data?: unknown;
+  // Metrics fields
+  tokens?: number;
+  elapsed?: number;
 }
 
 interface ProcessResult {
@@ -45,9 +61,14 @@ interface ProcessResult {
   company: string;
   research: CompanyResearch;
   memo: InvestmentMemo;
-  crmRecordId: string;
+  opportunityRecordId: string;
+  opportunityWebUrl?: string;
+  companyRecordId?: string;
   createdAt: string;
   triageResult?: FileTriageResult;
+  // Metrics
+  totalTokens?: number;
+  totalTimeMs?: number;
 }
 
 // ===========================================
@@ -77,22 +98,85 @@ function createSSEStream() {
 }
 
 // ===========================================
-// Mock CRM Operations
+// CRM Operations (Attio with fallback to mock)
 // ===========================================
 
-async function mockCRMLookup(companyName: string): Promise<{ exists: boolean; recordId?: string }> {
-  await new Promise((resolve) => setTimeout(resolve, 100));
-  return { exists: false };
+interface AttioIntegrationResult {
+  companyRecordId: string;
+  opportunityRecordId: string;
+  opportunityWebUrl?: string;
 }
 
-async function mockCRMCreate(companyName: string): Promise<{ recordId: string }> {
-  await new Promise((resolve) => setTimeout(resolve, 100));
-  return { recordId: `attio-${Date.now()}` };
-}
+async function saveToAttio(
+  companyName: string,
+  research: CompanyResearch,
+  memo: InvestmentMemo,
+  send: (event: ProgressEvent) => void
+): Promise<AttioIntegrationResult> {
+  if (!isAttioConfigured()) {
+    // Fallback to mock when Attio is not configured
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    return {
+      companyRecordId: `mock-company-${Date.now()}`,
+      opportunityRecordId: `mock-opp-${Date.now()}`,
+    };
+  }
 
-async function mockCRMSaveNote(recordId: string, memo: InvestmentMemo): Promise<{ noteId: string }> {
-  await new Promise((resolve) => setTimeout(resolve, 100));
-  return { noteId: `note-${Date.now()}` };
+  try {
+    // Step 1: Upsert company
+    send({ type: "progress", stage: "saving_company", message: "Creating/updating company in Attio..." });
+    const companyResult = await upsertCompany(research);
+
+    const companyAction = companyResult.isNew ? "Created" : "Updated";
+    send({
+      type: "progress",
+      stage: "company_saved",
+      message: `${companyAction} company: ${companyName}`
+    });
+
+    // Step 2: Create Investment Opportunity
+    send({ type: "progress", stage: "creating_opportunity", message: "Creating Investment Opportunity..." });
+    const opportunityResult = await createInvestmentOpportunity(
+      companyResult.recordId,
+      companyName,
+      memo,
+      research
+    );
+
+    send({
+      type: "progress",
+      stage: "opportunity_created",
+      message: "Investment Opportunity created"
+    });
+
+    // Step 3: Attach memo as note
+    send({ type: "progress", stage: "attaching_memo", message: "Attaching investment memo..." });
+    await attachOpportunityNote(opportunityResult.recordId, memo);
+
+    send({
+      type: "progress",
+      stage: "memo_attached",
+      message: "Investment memo attached"
+    });
+
+    return {
+      companyRecordId: companyResult.recordId,
+      opportunityRecordId: opportunityResult.recordId,
+      opportunityWebUrl: opportunityResult.webUrl,
+    };
+  } catch (error) {
+    console.error("Attio integration failed:", error);
+    // Fallback to mock on error
+    send({
+      type: "progress",
+      stage: "crm_warning",
+      message: `CRM save failed: ${error instanceof Error ? error.message : "Unknown error"}. Data saved locally.`
+    });
+    return {
+      companyRecordId: `mock-company-${Date.now()}`,
+      opportunityRecordId: `mock-opp-${Date.now()}`,
+    };
+  }
 }
 
 // ===========================================
@@ -118,10 +202,20 @@ async function runPipeline(
   send: (event: ProgressEvent) => void
 ): Promise<ProcessResult> {
   const startTime = Date.now();
+  let totalTokens = 0;
   let companyName = textInput.trim();
   let triageResult: FileTriageResult | undefined;
   let fileContext: FileContext | undefined;
   let attachmentReferences: AttachmentReference[] | undefined;
+
+  // Helper to send metrics update
+  const sendMetrics = () => {
+    send({
+      type: "metrics",
+      tokens: totalTokens,
+      elapsed: Date.now() - startTime,
+    });
+  };
 
   // Stage 0: Triage files if present
   if (files.length > 0) {
@@ -160,56 +254,89 @@ async function runPipeline(
   // Stage 1: Identify company
   send({ type: "progress", stage: "identifying", message: `Researching: ${companyName}` });
 
-  // Stage 2: Check CRM
-  send({ type: "progress", stage: "checking", message: "Checking CRM for existing record..." });
-  const crmLookup = await mockCRMLookup(companyName);
-
-  if (crmLookup.exists) {
-    send({ type: "progress", stage: "found", message: `Found existing record: ${crmLookup.recordId}` });
-  } else {
-    send({ type: "progress", stage: "new", message: "New company - proceeding with research" });
-  }
-
-  // Stage 3: Parallel research with targeted file context
+  // Stage 2: Parallel research with targeted file context
+  // Note: We always research fresh - even if company exists in CRM
   send({ type: "progress", stage: "researching", message: "Starting parallel research..." });
+  sendMetrics();
 
   const research = await runParallelResearch(
     companyName,
-    (area, status) => {
-      send({ type: "research", area, status });
+    (area, status, tokens) => {
+      if (tokens) {
+        totalTokens += tokens;
+      }
+      send({ type: "research", area, status, tokens });
+      sendMetrics();
     },
     fileContext // Pass targeted context to each research area
   );
 
-  // Stage 4: Synthesize research
-  send({ type: "progress", stage: "synthesizing", message: "Synthesizing research..." });
-  const structuredResearch = await synthesizeResearch(companyName, research);
+  // Add research tokens to total (in case some were missed)
+  if (research.totalUsage) {
+    // Reset and use the accurate total from research
+    totalTokens = research.totalUsage.totalTokens;
+  }
+  sendMetrics();
 
-  // Stage 5: Generate memo (with attachment references)
+  // Stage 3: Synthesize research
+  send({ type: "progress", stage: "synthesizing", message: "Synthesizing research..." });
+  sendMetrics();
+  const structuredResearch = await synthesizeResearch(companyName, research);
+  sendMetrics();
+
+  // Stage 4: Generate memo (with raw research for detailed sections and citations)
   send({ type: "progress", stage: "generating", message: "Generating investment memo..." });
-  const memo = await generateInvestmentMemo(companyName, structuredResearch);
+  sendMetrics();
+  const memo = await generateInvestmentMemo(companyName, structuredResearch, research);
+  sendMetrics();
 
   // Add attachment references to memo if files were processed
   if (attachmentReferences && attachmentReferences.length > 0) {
     memo.attachmentReferences = attachmentReferences;
   }
 
-  // Stage 6: Save to CRM
+  // Stage 5: Generate infographic
+  send({ type: "progress", stage: "infographic", message: "Generating infographic..." });
+  sendMetrics();
+  try {
+    const infographicBase64 = await generateInfographic(companyName, structuredResearch, memo);
+    if (infographicBase64) {
+      memo.infographicBase64 = infographicBase64;
+      send({ type: "progress", stage: "infographic_done", message: "Infographic generated" });
+    } else {
+      send({ type: "progress", stage: "infographic_skip", message: "Infographic generation skipped" });
+    }
+  } catch (error) {
+    console.error("Infographic generation failed:", error);
+    send({ type: "progress", stage: "infographic_error", message: "Infographic generation failed" });
+  }
+  sendMetrics();
+
+  // Stage 6: Save to Attio CRM
+  // Flow: Upsert Company → Create Investment Opportunity → Attach Memo Note
   send({ type: "progress", stage: "saving", message: "Saving to CRM..." });
-  const crmRecord = await mockCRMCreate(companyName);
-  await mockCRMSaveNote(crmRecord.recordId, memo);
+  sendMetrics();
+  const attioResult = await saveToAttio(companyName, structuredResearch, memo, send);
 
   const duration = Date.now() - startTime;
-  send({ type: "progress", stage: "complete", message: `Complete in ${(duration / 1000).toFixed(1)}s` });
+  const crmMessage = attioResult.opportunityWebUrl
+    ? `Complete in ${(duration / 1000).toFixed(1)}s - [View in Attio](${attioResult.opportunityWebUrl})`
+    : `Complete in ${(duration / 1000).toFixed(1)}s`;
+  send({ type: "progress", stage: "complete", message: crmMessage });
+  sendMetrics();
 
   return {
     id: `opp-${Date.now()}`,
     company: companyName,
     research: structuredResearch,
     memo,
-    crmRecordId: crmRecord.recordId,
+    opportunityRecordId: attioResult.opportunityRecordId,
+    opportunityWebUrl: attioResult.opportunityWebUrl,
+    companyRecordId: attioResult.companyRecordId,
     createdAt: new Date().toISOString(),
     triageResult,
+    totalTokens,
+    totalTimeMs: duration,
   };
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import type { CompanyResearch, InvestmentMemo, StrategicFitAnalysis, FundFit, AttachmentReference } from "@/src/types/schemas";
+import type { CompanyResearch, InvestmentMemo, StrategicFitAnalysis, FundFit, AttachmentReference, SourceReference } from "@/src/types/schemas";
 import { AttachmentList, type AttachedFile } from "@/components/upload";
 import { getClassificationLabel, getClassificationIcon } from "@/src/lib/multimodal";
 
@@ -22,6 +22,7 @@ type PipelineStep =
   | "research_news"
   | "synthesize"
   | "generate_memo"
+  | "generate_infographic"
   | "save_crm";
 
 interface PipelineStatus {
@@ -35,6 +36,7 @@ interface PipelineStatus {
   research_news: TaskStatus;
   synthesize: TaskStatus;
   generate_memo: TaskStatus;
+  generate_infographic: TaskStatus;
   save_crm: TaskStatus;
 }
 
@@ -46,8 +48,12 @@ interface ProcessResult {
   company: string;
   research: CompanyResearch;
   memo: InvestmentMemo;
-  crmRecordId: string;
+  opportunityRecordId: string;
+  opportunityWebUrl?: string;
+  companyRecordId?: string;
   createdAt: string;
+  totalTokens?: number;
+  totalTimeMs?: number;
 }
 
 interface Message {
@@ -72,6 +78,7 @@ function PipelineProgress({ status }: { status: PipelineStatus }) {
     { key: "research_news", label: "News", shortLabel: "News", group: "research" },
     { key: "synthesize", label: "Synthesize Data", shortLabel: "Synthesize", group: "generate" },
     { key: "generate_memo", label: "Generate Memo", shortLabel: "Memo", group: "generate" },
+    { key: "generate_infographic", label: "Generate Infographic", shortLabel: "Infographic", group: "generate" },
     { key: "save_crm", label: "Save to CRM", shortLabel: "Save", group: "save" },
   ];
 
@@ -482,6 +489,71 @@ function StrategicFitCard({ strategicFit }: { strategicFit: StrategicFitAnalysis
   );
 }
 
+function SourcesCard({ sources }: { sources: SourceReference[] }) {
+  if (!sources || sources.length === 0) return null;
+
+  return (
+    <div className="space-y-3 md:space-y-2">
+      <h5 className="text-sm md:text-xs text-zinc-500 uppercase tracking-wide">
+        Sources ({sources.length})
+      </h5>
+      <div className="space-y-2">
+        {sources.map((source, index) => (
+          <div
+            key={index}
+            className="bg-zinc-800/50 rounded-lg p-3 md:p-2.5 flex items-start gap-3"
+          >
+            <span className="text-zinc-500 text-sm md:text-xs font-mono flex-shrink-0">
+              [{index + 1}]
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  {source.url ? (
+                    <a
+                      href={source.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm md:text-xs text-blue-400 hover:text-blue-300 hover:underline line-clamp-2"
+                    >
+                      {source.title}
+                    </a>
+                  ) : (
+                    <span className="text-sm md:text-xs text-zinc-300 line-clamp-2">
+                      {source.title}
+                    </span>
+                  )}
+                  <div className="flex items-center gap-2 mt-1 text-xs md:text-[10px] text-zinc-500">
+                    <span>{source.source}</span>
+                    {source.date && (
+                      <>
+                        <span>•</span>
+                        <span>{source.date}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {source.usedIn && source.usedIn.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {source.usedIn.map((section) => (
+                    <span
+                      key={section}
+                      className="text-[10px] px-1.5 py-0.5 bg-zinc-700 text-zinc-400 rounded"
+                    >
+                      {section}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function AttachmentReferencesCard({ attachments }: { attachments: AttachmentReference[] }) {
   const usedAttachments = attachments.filter(
     (a) => a.classification !== "irrelevant" && a.classification !== "reference_only"
@@ -604,6 +676,14 @@ function OpportunityCard({
               <span className="text-sm md:text-xs px-2.5 md:px-2 py-0.5 bg-zinc-800 rounded-full text-zinc-400 flex-shrink-0">
                 {research.company.stage}
               </span>
+              {/* Metrics badge */}
+              {(result.totalTokens || result.totalTimeMs) && (
+                <span className="text-[10px] px-2 py-0.5 bg-zinc-800/50 rounded-full text-zinc-500 flex-shrink-0">
+                  {result.totalTokens ? formatTokens(result.totalTokens) : ""}
+                  {result.totalTokens && result.totalTimeMs ? " · " : ""}
+                  {result.totalTimeMs ? formatTime(result.totalTimeMs) : ""}
+                </span>
+              )}
             </div>
             <p className="text-sm md:text-sm text-zinc-400 mt-1.5 md:mt-1 line-clamp-2 leading-relaxed">{memo.oneLiner}</p>
           </div>
@@ -691,11 +771,21 @@ function OpportunityCard({
               Website
             </a>
           )}
-          <button className="text-sm md:text-xs px-4 md:px-3 py-2.5 md:py-1.5 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 rounded-lg text-zinc-300 transition-colors touch-manipulation">
-            View in Attio
-          </button>
-          <button className="text-sm md:text-xs px-4 md:px-3 py-2.5 md:py-1.5 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 rounded-lg text-zinc-300 transition-colors touch-manipulation">
-            Full Memo
+          {result.opportunityWebUrl && (
+            <a
+              href={result.opportunityWebUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm md:text-xs px-4 md:px-3 py-2.5 md:py-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg text-white transition-colors touch-manipulation"
+            >
+              View in Attio
+            </a>
+          )}
+          <button
+            onClick={() => onToggle()}
+            className="text-sm md:text-xs px-4 md:px-3 py-2.5 md:py-1.5 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 rounded-lg text-zinc-300 transition-colors touch-manipulation"
+          >
+            {expanded ? "Hide Memo" : "Full Memo"}
           </button>
         </div>
       </div>
@@ -771,6 +861,54 @@ function OpportunityCard({
             </div>
           )}
 
+          {/* Infographic */}
+          {memo.infographicBase64 && (
+            <div className="pt-4 border-t border-zinc-700">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-base md:text-sm font-medium text-zinc-300">Investment Infographic</h4>
+                <a
+                  href={memo.infographicBase64}
+                  download={`${research.company.name}-infographic.png`}
+                  className="text-sm md:text-xs px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-300 transition-colors"
+                >
+                  Download
+                </a>
+              </div>
+              <div className="bg-zinc-800/50 rounded-lg p-4 flex justify-center">
+                <img
+                  src={memo.infographicBase64}
+                  alt={`${research.company.name} Investment Infographic`}
+                  className="max-w-full h-auto rounded-lg shadow-lg cursor-pointer hover:opacity-90 transition-opacity"
+                  style={{ maxHeight: "600px" }}
+                  onClick={() => {
+                    // Convert data URL to blob for better browser support
+                    const dataUrl = memo.infographicBase64!;
+                    const [header, base64] = dataUrl.split(",");
+                    const mimeMatch = header.match(/:(.*?);/);
+                    const mime = mimeMatch ? mimeMatch[1] : "image/png";
+                    const binary = atob(base64);
+                    const array = new Uint8Array(binary.length);
+                    for (let i = 0; i < binary.length; i++) {
+                      array[i] = binary.charCodeAt(i);
+                    }
+                    const blob = new Blob([array], { type: mime });
+                    const blobUrl = URL.createObjectURL(blob);
+                    window.open(blobUrl, "_blank");
+                  }}
+                  title="Click to open in new tab"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Sources */}
+          {memo.sources && memo.sources.length > 0 && (
+            <div className="pt-4 border-t border-zinc-700">
+              <h4 className="text-base md:text-sm font-medium text-zinc-300 mb-3">Sources & References</h4>
+              <SourcesCard sources={memo.sources} />
+            </div>
+          )}
+
           {/* Attachment References */}
           {memo.attachmentReferences && memo.attachmentReferences.length > 0 && (
             <div className="pt-4 border-t border-zinc-700">
@@ -785,12 +923,25 @@ function OpportunityCard({
   );
 }
 
+function formatTokens(tokens: number): string {
+  if (tokens >= 1000000) return `${(tokens / 1000000).toFixed(1)}M`;
+  if (tokens >= 1000) return `${(tokens / 1000).toFixed(1)}K`;
+  return tokens.toString();
+}
+
+function formatTime(ms: number): string {
+  if (ms >= 60000) return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`;
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
 function ProcessingCard({
   company,
   pipelineStatus,
+  metrics,
 }: {
   company: string;
   pipelineStatus: PipelineStatus;
+  metrics?: { tokens: number; elapsed: number };
 }) {
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 md:p-4">
@@ -798,10 +949,17 @@ function ProcessingCard({
         <div className="w-10 h-10 md:w-8 md:h-8 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
           <span className="animate-spin text-blue-400 text-lg md:text-base">○</span>
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h3 className="text-lg md:text-lg font-semibold text-white truncate">{company}</h3>
           <p className="text-sm md:text-xs text-zinc-500">Processing...</p>
         </div>
+        {/* Live Metrics */}
+        {metrics && (
+          <div className="text-right text-xs md:text-[10px] text-zinc-500 flex-shrink-0">
+            <div>{formatTokens(metrics.tokens)} tokens</div>
+            <div>{formatTime(metrics.elapsed)}</div>
+          </div>
+        )}
       </div>
 
       <PipelineProgress status={pipelineStatus} />
@@ -824,6 +982,7 @@ const initialPipelineStatus: PipelineStatus = {
   research_news: "pending",
   synthesize: "pending",
   generate_memo: "pending",
+  generate_infographic: "pending",
   save_crm: "pending",
 };
 
@@ -837,6 +996,7 @@ export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingCompany, setProcessingCompany] = useState("");
   const [pipelineStatus, setPipelineStatus] = useState<PipelineStatus>(initialPipelineStatus);
+  const [liveMetrics, setLiveMetrics] = useState({ tokens: 0, elapsed: 0 });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -937,6 +1097,7 @@ export default function Home() {
     setIsProcessing(true);
     setProcessingCompany(userMessage || `${filesToUpload.length} file(s)`);
     setPipelineStatus(initialPipelineStatus);
+    setLiveMetrics({ tokens: 0, elapsed: 0 });
 
     // Add user message
     const messageContent = userMessage
@@ -979,14 +1140,24 @@ export default function Home() {
 
       if (!reader) throw new Error("No response body");
 
+      // Buffer for incomplete SSE lines (large payloads like base64 images may span multiple chunks)
+      let buffer = "";
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const text = decoder.decode(value);
-        const lines = text.split("\n");
+        // Append new data to buffer
+        buffer += decoder.decode(value, { stream: true });
 
-        for (const line of lines) {
+        // Process complete lines (SSE format: "data: {...}\n\n")
+        const lines = buffer.split("\n\n");
+
+        // Keep the last incomplete chunk in the buffer
+        buffer = lines.pop() || "";
+
+        for (const chunk of lines) {
+          const line = chunk.trim();
           if (line.startsWith("data: ")) {
             try {
               const event = JSON.parse(line.slice(6));
@@ -1003,6 +1174,10 @@ export default function Home() {
                   researching: "research_basics", // Will be updated by research events
                   synthesizing: "synthesize",
                   generating: "generate_memo",
+                  infographic: "generate_infographic",
+                  infographic_done: "generate_infographic",
+                  infographic_skip: "generate_infographic",
+                  infographic_error: "generate_infographic",
                   saving: "save_crm",
                 };
                 const step = stageMap[event.stage];
@@ -1038,8 +1213,14 @@ export default function Home() {
                   }));
                 } else if (event.stage === "generating") {
                   setPipelineStatus((prev) => ({ ...prev, synthesize: "completed", generate_memo: "in_progress" }));
+                } else if (event.stage === "infographic") {
+                  setPipelineStatus((prev) => ({ ...prev, generate_memo: "completed", generate_infographic: "in_progress" }));
+                } else if (event.stage === "infographic_done") {
+                  setPipelineStatus((prev) => ({ ...prev, generate_infographic: "completed" }));
+                } else if (event.stage === "infographic_skip" || event.stage === "infographic_error") {
+                  setPipelineStatus((prev) => ({ ...prev, generate_infographic: event.stage === "infographic_error" ? "error" : "completed" }));
                 } else if (event.stage === "saving") {
-                  setPipelineStatus((prev) => ({ ...prev, generate_memo: "completed", save_crm: "in_progress" }));
+                  setPipelineStatus((prev) => ({ ...prev, generate_memo: "completed", generate_infographic: "completed", save_crm: "in_progress" }));
                 } else if (event.stage === "complete") {
                   setPipelineStatus((prev) => ({ ...prev, save_crm: "completed" }));
                 }
@@ -1060,6 +1241,11 @@ export default function Home() {
                     [step]: event.status,
                   }));
                 }
+              } else if (event.type === "metrics") {
+                setLiveMetrics({
+                  tokens: event.tokens || 0,
+                  elapsed: event.elapsed || 0,
+                });
               } else if (event.type === "result") {
                 const result = event.data as ProcessResult;
                 setOpportunities((prev) => [result, ...prev]);
@@ -1202,6 +1388,7 @@ export default function Home() {
               <ProcessingCard
                 company={processingCompany}
                 pipelineStatus={pipelineStatus}
+                metrics={liveMetrics}
               />
             </div>
           )}
@@ -1297,6 +1484,7 @@ export default function Home() {
             <ProcessingCard
               company={processingCompany}
               pipelineStatus={pipelineStatus}
+              metrics={liveMetrics}
             />
           )}
 

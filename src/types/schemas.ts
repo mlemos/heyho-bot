@@ -182,6 +182,16 @@ export type AttachmentReference = z.infer<typeof AttachmentReferenceSchema>;
 // Memo Types
 // ===========================================
 
+// Source reference for citations
+export const SourceReferenceSchema = z.object({
+  title: z.string().describe("Article or source title"),
+  source: z.string().describe("Publication name (e.g., TechCrunch, Reuters)"),
+  url: z.string().optional().describe("URL if available"),
+  date: z.string().optional().describe("Publication date if known"),
+  usedIn: z.array(z.string()).optional().describe("Which sections cite this source"),
+});
+export type SourceReference = z.infer<typeof SourceReferenceSchema>;
+
 // Company Scorecard - objective company metrics
 export const CompanyScorecardSchema = z.object({
   team: z.number().min(0).max(10).describe("Quality of founding team and leadership (0.0-10.0)"),
@@ -231,7 +241,9 @@ export const InvestmentMemoSchema = z.object({
   partnerFit: StrategicFitAnalysisSchema,
   oneLiner: z.string(),
   tags: z.array(z.string()),
+  sources: z.array(SourceReferenceSchema).describe("Sources and references cited in the memo"),
   attachmentReferences: z.array(AttachmentReferenceSchema).optional().describe("Files that were analyzed and how they were used"),
+  infographicBase64: z.string().optional().describe("Base64-encoded infographic image"),
 });
 export type InvestmentMemo = z.infer<typeof InvestmentMemoSchema>;
 
