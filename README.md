@@ -12,7 +12,7 @@ A multi-modal AI-based VC associate built for the AGI House Gemini 3 hackathon. 
   - **Fund Fit** (0.0-10.0): Alignment with fund thesis (Stage, Sector, Geography, Check Size)
   - **Partner Fit** (0.0-10.0): Strategic partner alignment analysis
 - **Attachment References**: Memos document which files were analyzed and how they were used
-- **Mobile-Responsive**: Tab-based navigation on mobile, touch-optimized UI
+- **Mobile-Responsive**: Inline cards in single-panel view on mobile, touch-optimized UI
 - **Real-time Progress**: SSE streaming with visual pipeline progress tracking
 - **Investment Memos**: Structured memo generation with executive summary, detailed sections, and scorecards
 - **Configurable**: Customizable fund thesis and strategic partners

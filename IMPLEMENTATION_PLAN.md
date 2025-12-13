@@ -252,9 +252,9 @@ components/
 ### Phase 2.2: Mobile-Responsive UX ✅ COMPLETE
 
 - [x] **Responsive Layout**
-  - [x] Add mobile tab navigation between Chat and Results panels
-  - [x] Stack panels on mobile, side-by-side on desktop (md: breakpoint)
-  - [x] Auto-switch to Results tab when research completes
+  - [x] Inline opportunity cards on mobile (no panel switching required)
+  - [x] Full-width single panel on mobile, side-by-side on desktop (md: breakpoint)
+  - [x] Cards appear inline in chat flow as research completes
   - [x] Add viewport meta for mobile scaling
 
 - [x] **Mobile Optimizations**
@@ -267,7 +267,7 @@ components/
 - [x] **Component Updates**
   - [x] OpportunityCard: Stack layout on small screens, compact scores
   - [x] PipelineProgress: 2-column grid on mobile, 3 on desktop
-  - [x] ProcessingCard: Truncate long company names
+  - [x] ProcessingCard: Truncate long company names, inline display on mobile
   - [x] Input area: Larger inputs and icon-only button on mobile
 
 ---
