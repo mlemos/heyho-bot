@@ -74,7 +74,7 @@ function getFileIcon(mimeType: string): { icon: string; color: string } {
     mimeType === "application/json" ||
     mimeType === "application/xml"
   ) {
-    return { icon: "📃", color: "bg-zinc-500/20 text-zinc-400" };
+    return { icon: "📃", color: "bg-gray-500/20 text-gray-500" };
   }
 
   // Data files
@@ -83,7 +83,7 @@ function getFileIcon(mimeType: string): { icon: string; color: string } {
   }
 
   // Default
-  return { icon: "📎", color: "bg-zinc-500/20 text-zinc-400" };
+  return { icon: "📎", color: "bg-gray-500/20 text-gray-500" };
 }
 
 function truncateFilename(name: string, maxLength: number = 20): string {
@@ -140,10 +140,10 @@ export function AttachmentPreview({
       {/* Preview container */}
       <div
         className={`
-          ${s.container} rounded-lg overflow-hidden
-          border border-zinc-700 bg-zinc-800
+          ${s.container} rounded-lg overflow-hidden border
           flex items-center justify-center
         `}
+        style={{ borderColor: 'var(--border)', backgroundColor: 'var(--card)' }}
       >
         {file.preview ? (
           // Image preview
@@ -199,15 +199,16 @@ export function AttachmentPreview({
       <div
         className="
           absolute -bottom-1 left-1/2 -translate-x-1/2 translate-y-full
-          bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1
+          border rounded-lg px-2 py-1 shadow-lg
           opacity-0 group-hover:opacity-100
           transition-opacity duration-200
           pointer-events-none z-10
           whitespace-nowrap
         "
+        style={{ backgroundColor: 'var(--background)', borderColor: 'var(--border)' }}
       >
-        <p className="text-xs text-zinc-300">{truncateFilename(file.file.name)}</p>
-        <p className="text-xs text-zinc-500">{formatFileSize(file.file.size)}</p>
+        <p className="text-xs" style={{ color: 'var(--foreground-secondary)' }}>{truncateFilename(file.file.name)}</p>
+        <p className="text-xs" style={{ color: 'var(--foreground-muted)' }}>{formatFileSize(file.file.size)}</p>
       </div>
     </div>
   );

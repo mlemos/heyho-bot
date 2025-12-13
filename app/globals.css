@@ -1,24 +1,152 @@
 @import "tailwindcss";
 
+/*
+ * Theme System
+ *
+ * Light mode: Clean, professional white theme
+ * Dark mode: Vercel-like black theme
+ *
+ * All colors use CSS variables for consistency
+ */
+
+/* Light mode (default) */
 :root {
+  /* Backgrounds */
+  --background: #ffffff;
+  --background-secondary: #fafafa;
+  --card: #f4f4f5;
+  --card-hover: #e4e4e7;
+
+  /* Text */
+  --foreground: #09090b;
+  --foreground-secondary: #3f3f46;
+  --foreground-muted: #71717a;
+
+  /* Borders */
+  --border: #e4e4e7;
+  --border-strong: #d4d4d8;
+
+  /* Interactive */
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+
+  /* Status - darker for light backgrounds */
+  --success: #16a34a;
+  --success-light: #dcfce7;
+  --warning: #ca8a04;
+  --warning-light: #fef9c3;
+  --error: #dc2626;
+  --error-light: #fee2e2;
+  --info: #2563eb;
+  --info-light: #dbeafe;
+
+  /* Scores */
+  --score-high: #16a34a;
+  --score-high-bg: rgba(22, 163, 74, 0.15);
+  --score-medium: #ca8a04;
+  --score-medium-bg: rgba(202, 138, 4, 0.15);
+  --score-low: #dc2626;
+  --score-low-bg: rgba(220, 38, 38, 0.15);
+  --score-blue: #2563eb;
+  --score-blue-bg: rgba(37, 99, 235, 0.15);
+  --score-purple: #7c3aed;
+  --score-purple-bg: rgba(124, 58, 237, 0.15);
+}
+
+/* Dark mode */
+.dark {
+  /* Backgrounds */
   --background: #09090b;
-  --foreground: #fafafa;
+  --background-secondary: #0a0a0a;
   --card: #18181b;
-  --card-foreground: #fafafa;
-  --muted: #27272a;
-  --muted-foreground: #a1a1aa;
+  --card-hover: #27272a;
+
+  /* Text */
+  --foreground: #fafafa;
+  --foreground-secondary: #a1a1aa;
+  --foreground-muted: #71717a;
+
+  /* Borders */
   --border: #27272a;
+  --border-strong: #3f3f46;
+
+  /* Interactive */
   --primary: #3b82f6;
   --primary-foreground: #ffffff;
+
+  /* Status - brighter for dark backgrounds */
   --success: #22c55e;
+  --success-light: rgba(34, 197, 94, 0.15);
   --warning: #eab308;
+  --warning-light: rgba(234, 179, 8, 0.15);
   --error: #ef4444;
+  --error-light: rgba(239, 68, 68, 0.15);
+  --info: #3b82f6;
+  --info-light: rgba(59, 130, 246, 0.15);
+
+  /* Scores */
+  --score-high: #22c55e;
+  --score-high-bg: rgba(34, 197, 94, 0.2);
+  --score-medium: #eab308;
+  --score-medium-bg: rgba(234, 179, 8, 0.2);
+  --score-low: #ef4444;
+  --score-low-bg: rgba(239, 68, 68, 0.2);
+  --score-blue: #3b82f6;
+  --score-blue-bg: rgba(59, 130, 246, 0.2);
+  --score-purple: #a78bfa;
+  --score-purple-bg: rgba(167, 139, 250, 0.2);
+}
+
+/* Base styles */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Prevent body scroll - scroll happens in content areas */
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Mobile viewport fix for iOS Safari */
+@supports (-webkit-touch-callout: none) {
+  .h-screen {
+    height: -webkit-fill-available;
+  }
+}
+
+/* Dynamic viewport height for mobile */
+.h-dvh {
+  height: 100vh; /* Fallback */
+  height: 100dvh; /* Modern browsers */
+}
+
+/* Safe area insets for iOS */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.safe-area-left {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+
+.safe-area-right {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Combined safe areas */
+.safe-area-inset {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
 }
 
 /* Custom scrollbar */
@@ -32,12 +160,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--muted);
+  background: var(--border-strong);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--muted-foreground);
+  background: var(--foreground-muted);
 }
 
 /* Animations */
@@ -59,12 +187,31 @@ body {
   animation: spin 1s linear infinite;
 }
 
-/* Progress bar animation */
-@keyframes progress {
-  0% { width: 0%; }
-  100% { width: 100%; }
+/* Utility classes using CSS variables */
+.bg-main {
+  background-color: var(--background);
 }
 
-.progress-bar {
-  animation: progress 2s ease-out forwards;
+.bg-secondary {
+  background-color: var(--background-secondary);
+}
+
+.bg-card {
+  background-color: var(--card);
+}
+
+.text-primary {
+  color: var(--foreground);
+}
+
+.text-secondary {
+  color: var(--foreground-secondary);
+}
+
+.text-muted {
+  color: var(--foreground-muted);
+}
+
+.border-default {
+  border-color: var(--border);
 }

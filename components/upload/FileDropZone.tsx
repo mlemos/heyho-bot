@@ -183,23 +183,19 @@ export function FileDropZone({
           relative border-2 border-dashed rounded-xl p-6
           transition-all duration-200 cursor-pointer
           min-h-[120px] flex flex-col items-center justify-center gap-2
-          ${
-            isDragging
-              ? "border-blue-500 bg-blue-500/10"
-              : "border-zinc-700 hover:border-zinc-500 hover:bg-zinc-800/50"
-          }
+          ${isDragging ? "border-blue-500 bg-blue-500/10" : ""}
           ${disabled ? "opacity-50 cursor-not-allowed" : ""}
         `}
+        style={isDragging ? {} : { borderColor: 'var(--border-strong)' }}
       >
         {/* Icon */}
         <div
-          className={`
-            w-12 h-12 rounded-full flex items-center justify-center
-            ${isDragging ? "bg-blue-500/20" : "bg-zinc-800"}
-          `}
+          className="w-12 h-12 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: isDragging ? 'rgba(59, 130, 246, 0.2)' : 'var(--card)' }}
         >
           <svg
-            className={`w-6 h-6 ${isDragging ? "text-blue-400" : "text-zinc-400"}`}
+            className="w-6 h-6"
+            style={{ color: isDragging ? '#60a5fa' : 'var(--foreground-muted)' }}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -215,21 +211,21 @@ export function FileDropZone({
 
         {/* Text */}
         <div className="text-center">
-          <p className={`text-sm ${isDragging ? "text-blue-400" : "text-zinc-300"}`}>
+          <p className="text-sm" style={{ color: isDragging ? '#60a5fa' : 'var(--foreground-secondary)' }}>
             {isDragging ? "Drop files here" : "Drag & drop files here"}
           </p>
-          <p className="text-xs text-zinc-500 mt-1">
+          <p className="text-xs mt-1" style={{ color: 'var(--foreground-muted)' }}>
             or <span className="text-blue-400">click to browse</span>
           </p>
         </div>
 
         {/* Supported formats hint */}
-        <p className="text-xs text-zinc-600 mt-2">
+        <p className="text-xs mt-2" style={{ color: 'var(--foreground-muted)' }}>
           PDF, images, Office docs, audio, video, and more
         </p>
 
         {/* Size info */}
-        <p className="text-xs text-zinc-600">
+        <p className="text-xs" style={{ color: 'var(--foreground-muted)' }}>
           Max {formatFileSize(maxFileSize)} per file, {formatFileSize(maxTotalSize)} total
         </p>
       </div>

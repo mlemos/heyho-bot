@@ -4,6 +4,8 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import type { CompanyResearch, InvestmentMemo, StrategicFitAnalysis, FundFit, AttachmentReference, SourceReference } from "@/src/types/schemas";
 import { AttachmentList, type AttachedFile } from "@/components/upload";
 import { getClassificationLabel, getClassificationIcon } from "@/src/lib/multimodal";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { useTheme } from "next-themes";
 
 // ===========================================
 // Types
@@ -85,13 +87,13 @@ function PipelineProgress({ status }: { status: PipelineStatus }) {
   const statusIcon = (s: TaskStatus) => {
     switch (s) {
       case "completed":
-        return <span className="text-green-500">✓</span>;
+        return <span style={{ color: 'var(--success)' }}>✓</span>;
       case "in_progress":
-        return <span className="animate-spin inline-block">○</span>;
+        return <span className="animate-spin inline-block" style={{ color: 'var(--info)' }}>○</span>;
       case "error":
-        return <span className="text-red-500">✗</span>;
+        return <span style={{ color: 'var(--error)' }}>✗</span>;
       default:
-        return <span className="text-zinc-600">○</span>;
+        return <span style={{ color: 'var(--foreground-muted)' }}>○</span>;
     }
   };
 
@@ -104,12 +106,12 @@ function PipelineProgress({ status }: { status: PipelineStatus }) {
     <div className="space-y-4">
       {/* Setup */}
       <div>
-        <div className="text-xs md:text-[10px] text-zinc-500 uppercase tracking-wide mb-1.5">Setup</div>
+        <div className="text-xs md:text-[10px] uppercase tracking-wide mb-1.5" style={{ color: 'var(--foreground-muted)' }}>Setup</div>
         <div className="flex flex-wrap gap-3 md:gap-3">
           {setupSteps.map(({ key, label, shortLabel }) => (
             <div key={key} className="flex items-center gap-2 text-sm md:text-xs">
               {statusIcon(status[key])}
-              <span className={status[key] === "completed" ? "text-zinc-300" : "text-zinc-500"}>
+              <span style={{ color: status[key] === "completed" ? 'var(--foreground-secondary)' : 'var(--foreground-muted)' }}>
                 <span className="hidden sm:inline">{label}</span>
                 <span className="sm:hidden">{shortLabel}</span>
               </span>
@@ -120,12 +122,12 @@ function PipelineProgress({ status }: { status: PipelineStatus }) {
 
       {/* Research */}
       <div>
-        <div className="text-xs md:text-[10px] text-zinc-500 uppercase tracking-wide mb-1.5">Research</div>
+        <div className="text-xs md:text-[10px] uppercase tracking-wide mb-1.5" style={{ color: 'var(--foreground-muted)' }}>Research</div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
           {researchSteps.map(({ key, label, shortLabel }) => (
             <div key={key} className="flex items-center gap-2 text-sm md:text-xs">
               {statusIcon(status[key])}
-              <span className={status[key] === "completed" ? "text-zinc-300" : "text-zinc-500"}>
+              <span style={{ color: status[key] === "completed" ? 'var(--foreground-secondary)' : 'var(--foreground-muted)' }}>
                 <span className="hidden sm:inline">{label}</span>
                 <span className="sm:hidden">{shortLabel}</span>
               </span>
@@ -136,12 +138,12 @@ function PipelineProgress({ status }: { status: PipelineStatus }) {
 
       {/* Generate */}
       <div>
-        <div className="text-xs md:text-[10px] text-zinc-500 uppercase tracking-wide mb-1.5">Generate</div>
+        <div className="text-xs md:text-[10px] uppercase tracking-wide mb-1.5" style={{ color: 'var(--foreground-muted)' }}>Generate</div>
         <div className="flex flex-wrap gap-3 md:gap-3">
           {generateSteps.map(({ key, label, shortLabel }) => (
             <div key={key} className="flex items-center gap-2 text-sm md:text-xs">
               {statusIcon(status[key])}
-              <span className={status[key] === "completed" ? "text-zinc-300" : "text-zinc-500"}>
+              <span style={{ color: status[key] === "completed" ? 'var(--foreground-secondary)' : 'var(--foreground-muted)' }}>
                 <span className="hidden sm:inline">{label}</span>
                 <span className="sm:hidden">{shortLabel}</span>
               </span>
@@ -152,12 +154,12 @@ function PipelineProgress({ status }: { status: PipelineStatus }) {
 
       {/* Save */}
       <div>
-        <div className="text-xs md:text-[10px] text-zinc-500 uppercase tracking-wide mb-1.5">Save</div>
+        <div className="text-xs md:text-[10px] uppercase tracking-wide mb-1.5" style={{ color: 'var(--foreground-muted)' }}>Save</div>
         <div className="flex gap-3">
           {saveSteps.map(({ key, label, shortLabel }) => (
             <div key={key} className="flex items-center gap-2 text-sm md:text-xs">
               {statusIcon(status[key])}
-              <span className={status[key] === "completed" ? "text-zinc-300" : "text-zinc-500"}>
+              <span style={{ color: status[key] === "completed" ? 'var(--foreground-secondary)' : 'var(--foreground-muted)' }}>
                 <span className="hidden sm:inline">{label}</span>
                 <span className="sm:hidden">{shortLabel}</span>
               </span>
@@ -178,18 +180,18 @@ function CompanyScorecard({ scores }: { scores: InvestmentMemo["companyScorecard
     { key: "competition", label: "Competition" },
   ] as const;
 
-  const getColor = (score: number) => {
-    if (score >= 8) return "bg-green-500";
-    if (score >= 6) return "bg-yellow-500";
-    if (score >= 4) return "bg-orange-500";
-    return "bg-red-500";
+  const getBarColor = (score: number) => {
+    if (score >= 8) return 'var(--score-high)';
+    if (score >= 6) return 'var(--score-medium)';
+    if (score >= 4) return '#f97316'; // orange
+    return 'var(--score-low)';
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 8) return "bg-green-500/20 text-green-400 border-green-500/30";
-    if (score >= 6) return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
-    if (score >= 4) return "bg-orange-500/20 text-orange-400 border-orange-500/30";
-    return "bg-red-500/20 text-red-400 border-red-500/30";
+  const getScoreStyle = (score: number) => {
+    if (score >= 8) return { backgroundColor: 'var(--score-high-bg)', color: 'var(--score-high)', borderColor: 'var(--score-high)' };
+    if (score >= 6) return { backgroundColor: 'var(--score-medium-bg)', color: 'var(--score-medium)', borderColor: 'var(--score-medium)' };
+    if (score >= 4) return { backgroundColor: 'rgba(249, 115, 22, 0.15)', color: '#f97316', borderColor: '#f97316' };
+    return { backgroundColor: 'var(--score-low-bg)', color: 'var(--score-low)', borderColor: 'var(--score-low)' };
   };
 
   return (
@@ -198,15 +200,14 @@ function CompanyScorecard({ scores }: { scores: InvestmentMemo["companyScorecard
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div
-            className={`w-16 h-16 md:w-14 md:h-14 rounded-full flex items-center justify-center text-xl md:text-lg font-bold border ${getScoreColor(
-              scores.overall
-            )}`}
+            className="w-16 h-16 md:w-14 md:h-14 rounded-full flex items-center justify-center text-xl md:text-lg font-bold border"
+            style={getScoreStyle(scores.overall)}
           >
             {scores.overall.toFixed(1)}
           </div>
           <div>
-            <div className="text-base md:text-sm font-medium text-zinc-200">Company Score</div>
-            <div className="text-sm md:text-xs text-zinc-500">out of 10.0</div>
+            <div className="text-base md:text-sm font-medium" style={{ color: 'var(--foreground)' }}>Company Score</div>
+            <div className="text-sm md:text-xs" style={{ color: 'var(--foreground-muted)' }}>out of 10.0</div>
           </div>
         </div>
       </div>
@@ -215,14 +216,14 @@ function CompanyScorecard({ scores }: { scores: InvestmentMemo["companyScorecard
       <div className="space-y-3 md:space-y-2">
         {items.map(({ key, label }) => (
           <div key={key} className="flex items-center gap-3">
-            <span className="text-sm md:text-xs text-zinc-400 w-24 md:w-20">{label}</span>
-            <div className="flex-1 h-2.5 md:h-2 bg-zinc-800 rounded-full overflow-hidden">
+            <span className="text-sm md:text-xs w-24 md:w-20" style={{ color: 'var(--foreground-muted)' }}>{label}</span>
+            <div className="flex-1 h-2.5 md:h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--card-hover)' }}>
               <div
-                className={`h-full ${getColor(scores[key])} transition-all duration-500`}
-                style={{ width: `${scores[key] * 10}%` }}
+                className="h-full transition-all duration-500"
+                style={{ width: `${scores[key] * 10}%`, backgroundColor: getBarColor(scores[key]) }}
               />
             </div>
-            <span className="text-sm md:text-xs text-zinc-300 w-10 md:w-8">{scores[key].toFixed(1)}</span>
+            <span className="text-sm md:text-xs w-10 md:w-8" style={{ color: 'var(--foreground-secondary)' }}>{scores[key].toFixed(1)}</span>
           </div>
         ))}
       </div>
@@ -231,30 +232,30 @@ function CompanyScorecard({ scores }: { scores: InvestmentMemo["companyScorecard
 }
 
 function FundFitCard({ fundFit }: { fundFit: FundFit }) {
-  const getScoreColor = (score: number) => {
-    if (score >= 8) return "bg-green-500/20 text-green-400 border-green-500/30";
-    if (score >= 6) return "bg-blue-500/20 text-blue-400 border-blue-500/30";
-    if (score >= 4) return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
-    return "bg-red-500/20 text-red-400 border-red-500/30";
+  const getScoreStyle = (score: number) => {
+    if (score >= 8) return { backgroundColor: 'var(--score-high-bg)', color: 'var(--score-high)', borderColor: 'var(--score-high)' };
+    if (score >= 6) return { backgroundColor: 'var(--score-blue-bg)', color: 'var(--score-blue)', borderColor: 'var(--score-blue)' };
+    if (score >= 4) return { backgroundColor: 'var(--score-medium-bg)', color: 'var(--score-medium)', borderColor: 'var(--score-medium)' };
+    return { backgroundColor: 'var(--score-low-bg)', color: 'var(--score-low)', borderColor: 'var(--score-low)' };
   };
 
-  const getFitBadgeColor = (fit: string) => {
+  const getFitBadgeStyle = (fit: string) => {
     switch (fit) {
       case "perfect":
       case "core":
       case "target":
       case "ideal":
-        return "bg-green-500/20 text-green-400";
+        return { backgroundColor: 'var(--score-high-bg)', color: 'var(--score-high)' };
       case "good":
       case "adjacent":
       case "acceptable":
       case "stretch":
-        return "bg-blue-500/20 text-blue-400";
+        return { backgroundColor: 'var(--score-blue-bg)', color: 'var(--score-blue)' };
       case "exploratory":
       case "challenging":
-        return "bg-yellow-500/20 text-yellow-400";
+        return { backgroundColor: 'var(--score-medium-bg)', color: 'var(--score-medium)' };
       default:
-        return "bg-red-500/20 text-red-400";
+        return { backgroundColor: 'var(--score-low-bg)', color: 'var(--score-low)' };
     }
   };
 
@@ -264,42 +265,41 @@ function FundFitCard({ fundFit }: { fundFit: FundFit }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div
-            className={`w-16 h-16 md:w-14 md:h-14 rounded-full flex items-center justify-center text-xl md:text-lg font-bold border ${getScoreColor(
-              fundFit.score
-            )}`}
+            className="w-16 h-16 md:w-14 md:h-14 rounded-full flex items-center justify-center text-xl md:text-lg font-bold border"
+            style={getScoreStyle(fundFit.score)}
           >
             {fundFit.score.toFixed(1)}
           </div>
           <div>
-            <div className="text-base md:text-sm font-medium text-zinc-200">Fund Fit Score</div>
-            <div className="text-sm md:text-xs text-zinc-500">out of 10.0</div>
+            <div className="text-base md:text-sm font-medium" style={{ color: 'var(--foreground)' }}>Fund Fit Score</div>
+            <div className="text-sm md:text-xs" style={{ color: 'var(--foreground-muted)' }}>out of 10.0</div>
           </div>
         </div>
       </div>
 
       {/* Fit Dimensions */}
       <div className="grid grid-cols-2 gap-2.5 md:gap-2">
-        <div className="flex items-center justify-between bg-zinc-800/50 rounded-lg px-3 py-2.5 md:py-2">
-          <span className="text-sm md:text-xs text-zinc-400">Stage</span>
-          <span className={`text-sm md:text-xs px-2 py-0.5 rounded-full ${getFitBadgeColor(fundFit.stage)}`}>
+        <div className="flex items-center justify-between rounded-lg px-3 py-2.5 md:py-2" style={{ backgroundColor: 'var(--card)' }}>
+          <span className="text-sm md:text-xs" style={{ color: 'var(--foreground-muted)' }}>Stage</span>
+          <span className="text-sm md:text-xs px-2 py-0.5 rounded-full" style={getFitBadgeStyle(fundFit.stage)}>
             {fundFit.stage}
           </span>
         </div>
-        <div className="flex items-center justify-between bg-zinc-800/50 rounded-lg px-3 py-2.5 md:py-2">
-          <span className="text-sm md:text-xs text-zinc-400">Sector</span>
-          <span className={`text-sm md:text-xs px-2 py-0.5 rounded-full ${getFitBadgeColor(fundFit.sector)}`}>
+        <div className="flex items-center justify-between rounded-lg px-3 py-2.5 md:py-2" style={{ backgroundColor: 'var(--card)' }}>
+          <span className="text-sm md:text-xs" style={{ color: 'var(--foreground-muted)' }}>Sector</span>
+          <span className="text-sm md:text-xs px-2 py-0.5 rounded-full" style={getFitBadgeStyle(fundFit.sector)}>
             {fundFit.sector}
           </span>
         </div>
-        <div className="flex items-center justify-between bg-zinc-800/50 rounded-lg px-3 py-2.5 md:py-2">
-          <span className="text-sm md:text-xs text-zinc-400">Geography</span>
-          <span className={`text-sm md:text-xs px-2 py-0.5 rounded-full ${getFitBadgeColor(fundFit.geography)}`}>
+        <div className="flex items-center justify-between rounded-lg px-3 py-2.5 md:py-2" style={{ backgroundColor: 'var(--card)' }}>
+          <span className="text-sm md:text-xs" style={{ color: 'var(--foreground-muted)' }}>Geography</span>
+          <span className="text-sm md:text-xs px-2 py-0.5 rounded-full" style={getFitBadgeStyle(fundFit.geography)}>
             {fundFit.geography}
           </span>
         </div>
-        <div className="flex items-center justify-between bg-zinc-800/50 rounded-lg px-3 py-2.5 md:py-2">
-          <span className="text-sm md:text-xs text-zinc-400">Check Size</span>
-          <span className={`text-sm md:text-xs px-2 py-0.5 rounded-full ${getFitBadgeColor(fundFit.checkSize)}`}>
+        <div className="flex items-center justify-between rounded-lg px-3 py-2.5 md:py-2" style={{ backgroundColor: 'var(--card)' }}>
+          <span className="text-sm md:text-xs" style={{ color: 'var(--foreground-muted)' }}>Check Size</span>
+          <span className="text-sm md:text-xs px-2 py-0.5 rounded-full" style={getFitBadgeStyle(fundFit.checkSize)}>
             {fundFit.checkSize.replace("_", " ")}
           </span>
         </div>
@@ -308,12 +308,13 @@ function FundFitCard({ fundFit }: { fundFit: FundFit }) {
       {/* Aligned Theses */}
       {fundFit.alignedTheses.length > 0 && (
         <div>
-          <h5 className="text-sm md:text-xs text-zinc-500 uppercase tracking-wide mb-2">Aligned Theses</h5>
+          <h5 className="text-sm md:text-xs uppercase tracking-wide mb-2" style={{ color: 'var(--foreground-muted)' }}>Aligned Theses</h5>
           <div className="flex flex-wrap gap-1.5 md:gap-1">
             {fundFit.alignedTheses.map((thesis) => (
               <span
                 key={thesis}
-                className="text-sm md:text-xs px-2.5 md:px-2 py-1 bg-green-500/10 text-green-400 rounded-full"
+                className="text-sm md:text-xs px-2.5 md:px-2 py-1 rounded-full"
+                style={{ backgroundColor: 'var(--score-high-bg)', color: 'var(--score-high)' }}
               >
                 {thesis}
               </span>
@@ -324,18 +325,18 @@ function FundFitCard({ fundFit }: { fundFit: FundFit }) {
 
       {/* Rationale */}
       <div>
-        <h5 className="text-sm md:text-xs text-zinc-500 uppercase tracking-wide mb-2">Rationale</h5>
-        <p className="text-sm md:text-xs text-zinc-400 leading-relaxed">{fundFit.rationale}</p>
+        <h5 className="text-sm md:text-xs uppercase tracking-wide mb-2" style={{ color: 'var(--foreground-muted)' }}>Rationale</h5>
+        <p className="text-sm md:text-xs leading-relaxed" style={{ color: 'var(--foreground-secondary)' }}>{fundFit.rationale}</p>
       </div>
 
       {/* Concerns */}
       {fundFit.concerns.length > 0 && (
         <div>
-          <h5 className="text-sm md:text-xs text-zinc-500 uppercase tracking-wide mb-2">Concerns</h5>
+          <h5 className="text-sm md:text-xs uppercase tracking-wide mb-2" style={{ color: 'var(--foreground-muted)' }}>Concerns</h5>
           <ul className="space-y-1.5 md:space-y-1">
             {fundFit.concerns.map((concern, i) => (
-              <li key={i} className="text-sm md:text-xs text-zinc-400 flex items-start gap-2 leading-relaxed">
-                <span className="text-yellow-400">!</span>
+              <li key={i} className="text-sm md:text-xs flex items-start gap-2 leading-relaxed" style={{ color: 'var(--foreground-secondary)' }}>
+                <span style={{ color: 'var(--warning)' }}>!</span>
                 {concern}
               </li>
             ))}
@@ -347,36 +348,36 @@ function FundFitCard({ fundFit }: { fundFit: FundFit }) {
 }
 
 function StrategicFitCard({ strategicFit }: { strategicFit: StrategicFitAnalysis }) {
-  const getScoreColor = (score: number) => {
-    if (score >= 8) return "bg-purple-500/20 text-purple-400 border-purple-500/30";
-    if (score >= 6) return "bg-purple-500/20 text-purple-300 border-purple-500/30";
-    if (score >= 4) return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
-    return "bg-zinc-500/20 text-zinc-400 border-zinc-500/30";
+  const getScoreStyle = (score: number) => {
+    if (score >= 8) return { backgroundColor: 'var(--score-purple-bg)', color: 'var(--score-purple)', borderColor: 'var(--score-purple)' };
+    if (score >= 6) return { backgroundColor: 'var(--score-purple-bg)', color: 'var(--score-purple)', borderColor: 'var(--score-purple)' };
+    if (score >= 4) return { backgroundColor: 'var(--score-medium-bg)', color: 'var(--score-medium)', borderColor: 'var(--score-medium)' };
+    return { backgroundColor: 'var(--card)', color: 'var(--foreground-muted)', borderColor: 'var(--border)' };
   };
 
-  const getFitLevelColor = (level: string) => {
+  const getFitLevelStyle = (level: string) => {
     switch (level) {
       case "excellent":
-        return "bg-green-500/20 text-green-400";
+        return { backgroundColor: 'var(--score-high-bg)', color: 'var(--score-high)' };
       case "good":
-        return "bg-blue-500/20 text-blue-400";
+        return { backgroundColor: 'var(--score-blue-bg)', color: 'var(--score-blue)' };
       case "moderate":
-        return "bg-yellow-500/20 text-yellow-400";
+        return { backgroundColor: 'var(--score-medium-bg)', color: 'var(--score-medium)' };
       default:
-        return "bg-zinc-500/20 text-zinc-400";
+        return { backgroundColor: 'var(--card)', color: 'var(--foreground-muted)' };
     }
   };
 
-  const getMatchColor = (level: string) => {
+  const getMatchDotColor = (level: string) => {
     switch (level) {
       case "high":
-        return "bg-green-500";
+        return 'var(--score-high)';
       case "medium":
-        return "bg-yellow-500";
+        return 'var(--score-medium)';
       case "low":
-        return "bg-orange-500";
+        return '#f97316';
       default:
-        return "bg-zinc-600";
+        return 'var(--foreground-muted)';
     }
   };
 
@@ -386,20 +387,18 @@ function StrategicFitCard({ strategicFit }: { strategicFit: StrategicFitAnalysis
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 flex-wrap">
           <div
-            className={`w-16 h-16 md:w-14 md:h-14 rounded-full flex items-center justify-center text-xl md:text-lg font-bold border ${getScoreColor(
-              strategicFit.overallFitScore
-            )}`}
+            className="w-16 h-16 md:w-14 md:h-14 rounded-full flex items-center justify-center text-xl md:text-lg font-bold border"
+            style={getScoreStyle(strategicFit.overallFitScore)}
           >
             {strategicFit.overallFitScore.toFixed(1)}
           </div>
           <div>
-            <div className="text-base md:text-sm font-medium text-zinc-200">Partner Fit Score</div>
-            <div className="text-sm md:text-xs text-zinc-500">out of 10.0</div>
+            <div className="text-base md:text-sm font-medium" style={{ color: 'var(--foreground)' }}>Partner Fit Score</div>
+            <div className="text-sm md:text-xs" style={{ color: 'var(--foreground-muted)' }}>out of 10.0</div>
           </div>
           <span
-            className={`px-2.5 md:px-2 py-1 md:py-0.5 rounded-full text-sm md:text-xs font-medium ${getFitLevelColor(
-              strategicFit.overallFitLevel
-            )}`}
+            className="px-2.5 md:px-2 py-1 md:py-0.5 rounded-full text-sm md:text-xs font-medium"
+            style={getFitLevelStyle(strategicFit.overallFitLevel)}
           >
             {strategicFit.overallFitLevel.charAt(0).toUpperCase() +
               strategicFit.overallFitLevel.slice(1)}
@@ -409,13 +408,17 @@ function StrategicFitCard({ strategicFit }: { strategicFit: StrategicFitAnalysis
 
       {/* Categories */}
       <div className="flex flex-wrap gap-2">
-        <span className="text-sm md:text-xs px-2.5 md:px-2 py-1 bg-purple-500/20 text-purple-400 rounded-full">
+        <span
+          className="text-sm md:text-xs px-2.5 md:px-2 py-1 rounded-full"
+          style={{ backgroundColor: 'var(--score-purple-bg)', color: 'var(--score-purple)' }}
+        >
           {strategicFit.primaryCategory}
         </span>
         {strategicFit.secondaryCategories.slice(0, 3).map((cat) => (
           <span
             key={cat}
-            className="text-sm md:text-xs px-2.5 md:px-2 py-1 bg-zinc-700 text-zinc-300 rounded-full"
+            className="text-sm md:text-xs px-2.5 md:px-2 py-1 rounded-full"
+            style={{ backgroundColor: 'var(--card)', color: 'var(--foreground-secondary)' }}
           >
             {cat}
           </span>
@@ -424,34 +427,37 @@ function StrategicFitCard({ strategicFit }: { strategicFit: StrategicFitAnalysis
 
       {/* Partner Matches */}
       <div className="space-y-3">
-        <h5 className="text-sm md:text-xs text-zinc-500 uppercase tracking-wide">Partner Matches</h5>
+        <h5 className="text-sm md:text-xs uppercase tracking-wide" style={{ color: 'var(--foreground-muted)' }}>Partner Matches</h5>
         {strategicFit.partnerMatches.map((match) => (
           <div
             key={match.partnerName}
-            className="bg-zinc-800/50 rounded-lg p-3.5 md:p-3 space-y-2"
+            className="rounded-lg p-3.5 md:p-3 space-y-2"
+            style={{ backgroundColor: 'var(--card)' }}
           >
             <div className="flex items-center justify-between">
-              <span className="text-base md:text-sm font-medium text-zinc-200">
+              <span className="text-base md:text-sm font-medium" style={{ color: 'var(--foreground)' }}>
                 {match.partnerName}
               </span>
               <div className="flex items-center gap-2">
                 <div
-                  className={`w-2.5 h-2.5 md:w-2 md:h-2 rounded-full ${getMatchColor(match.matchLevel)}`}
+                  className="w-2.5 h-2.5 md:w-2 md:h-2 rounded-full"
+                  style={{ backgroundColor: getMatchDotColor(match.matchLevel) }}
                 />
-                <span className="text-sm md:text-xs text-zinc-400">
+                <span className="text-sm md:text-xs" style={{ color: 'var(--foreground-muted)' }}>
                   {match.matchLevel} ({match.matchScore.toFixed(1)})
                 </span>
               </div>
             </div>
             {match.matchLevel !== "none" && (
               <>
-                <p className="text-sm md:text-xs text-zinc-400 leading-relaxed">{match.rationale}</p>
+                <p className="text-sm md:text-xs leading-relaxed" style={{ color: 'var(--foreground-secondary)' }}>{match.rationale}</p>
                 {match.matchedInterests.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 md:gap-1">
                     {match.matchedInterests.slice(0, 4).map((interest) => (
                       <span
                         key={interest}
-                        className="text-sm md:text-xs px-2 md:px-1.5 py-0.5 bg-zinc-700 text-zinc-300 rounded"
+                        className="text-sm md:text-xs px-2 md:px-1.5 py-0.5 rounded"
+                        style={{ backgroundColor: 'var(--card-hover)', color: 'var(--foreground-secondary)' }}
                       >
                         {interest}
                       </span>
@@ -467,13 +473,13 @@ function StrategicFitCard({ strategicFit }: { strategicFit: StrategicFitAnalysis
       {/* Top Opportunities */}
       {strategicFit.topPartnerOpportunities.length > 0 && (
         <div className="space-y-2">
-          <h5 className="text-sm md:text-xs text-zinc-500 uppercase tracking-wide">
+          <h5 className="text-sm md:text-xs uppercase tracking-wide" style={{ color: 'var(--foreground-muted)' }}>
             Top Partner Opportunities
           </h5>
           <ul className="space-y-1.5 md:space-y-1">
             {strategicFit.topPartnerOpportunities.map((opp, i) => (
-              <li key={i} className="text-sm md:text-xs text-zinc-400 flex items-start gap-2 leading-relaxed">
-                <span className="text-green-400">&#x2022;</span>
+              <li key={i} className="text-sm md:text-xs flex items-start gap-2 leading-relaxed" style={{ color: 'var(--foreground-secondary)' }}>
+                <span style={{ color: 'var(--success)' }}>&#x2022;</span>
                 {opp}
               </li>
             ))}
@@ -482,8 +488,8 @@ function StrategicFitCard({ strategicFit }: { strategicFit: StrategicFitAnalysis
       )}
 
       {/* Strategic Narrative */}
-      <div className="pt-3 md:pt-2 border-t border-zinc-700">
-        <p className="text-sm md:text-xs text-zinc-500 italic leading-relaxed">{strategicFit.strategicNarrative}</p>
+      <div className="pt-3 md:pt-2" style={{ borderTop: '1px solid var(--border)' }}>
+        <p className="text-sm md:text-xs italic leading-relaxed" style={{ color: 'var(--foreground-muted)' }}>{strategicFit.strategicNarrative}</p>
       </div>
     </div>
   );
@@ -494,16 +500,17 @@ function SourcesCard({ sources }: { sources: SourceReference[] }) {
 
   return (
     <div className="space-y-3 md:space-y-2">
-      <h5 className="text-sm md:text-xs text-zinc-500 uppercase tracking-wide">
+      <h5 className="text-sm md:text-xs uppercase tracking-wide" style={{ color: 'var(--foreground-muted)' }}>
         Sources ({sources.length})
       </h5>
       <div className="space-y-2">
         {sources.map((source, index) => (
           <div
             key={index}
-            className="bg-zinc-800/50 rounded-lg p-3 md:p-2.5 flex items-start gap-3"
+            className="rounded-lg p-3 md:p-2.5 flex items-start gap-3"
+            style={{ backgroundColor: 'var(--card)' }}
           >
-            <span className="text-zinc-500 text-sm md:text-xs font-mono flex-shrink-0">
+            <span className="text-sm md:text-xs font-mono flex-shrink-0" style={{ color: 'var(--foreground-muted)' }}>
               [{index + 1}]
             </span>
             <div className="min-w-0 flex-1">
@@ -514,16 +521,17 @@ function SourcesCard({ sources }: { sources: SourceReference[] }) {
                       href={source.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm md:text-xs text-blue-400 hover:text-blue-300 hover:underline line-clamp-2"
+                      className="text-sm md:text-xs hover:underline line-clamp-2"
+                      style={{ color: 'var(--info)' }}
                     >
                       {source.title}
                     </a>
                   ) : (
-                    <span className="text-sm md:text-xs text-zinc-300 line-clamp-2">
+                    <span className="text-sm md:text-xs line-clamp-2" style={{ color: 'var(--foreground-secondary)' }}>
                       {source.title}
                     </span>
                   )}
-                  <div className="flex items-center gap-2 mt-1 text-xs md:text-[10px] text-zinc-500">
+                  <div className="flex items-center gap-2 mt-1 text-xs md:text-[10px]" style={{ color: 'var(--foreground-muted)' }}>
                     <span>{source.source}</span>
                     {source.date && (
                       <>
@@ -539,7 +547,8 @@ function SourcesCard({ sources }: { sources: SourceReference[] }) {
                   {source.usedIn.map((section) => (
                     <span
                       key={section}
-                      className="text-[10px] px-1.5 py-0.5 bg-zinc-700 text-zinc-400 rounded"
+                      className="text-[10px] px-1.5 py-0.5 rounded"
+                      style={{ backgroundColor: 'var(--card-hover)', color: 'var(--foreground-muted)' }}
                     >
                       {section}
                     </span>
@@ -563,10 +572,10 @@ function AttachmentReferencesCard({ attachments }: { attachments: AttachmentRefe
   );
 
   const getUsageColor = (usedIn: string[]) => {
-    if (usedIn.length >= 5) return "text-green-400";
-    if (usedIn.length >= 3) return "text-blue-400";
-    if (usedIn.length >= 1) return "text-yellow-400";
-    return "text-zinc-500";
+    if (usedIn.length >= 5) return 'var(--score-high)';
+    if (usedIn.length >= 3) return 'var(--score-blue)';
+    if (usedIn.length >= 1) return 'var(--score-medium)';
+    return 'var(--foreground-muted)';
   };
 
   return (
@@ -574,13 +583,14 @@ function AttachmentReferencesCard({ attachments }: { attachments: AttachmentRefe
       {/* Used Files */}
       {usedAttachments.length > 0 && (
         <div className="space-y-3 md:space-y-2">
-          <h5 className="text-sm md:text-xs text-zinc-500 uppercase tracking-wide">
+          <h5 className="text-sm md:text-xs uppercase tracking-wide" style={{ color: 'var(--foreground-muted)' }}>
             Files Used in Research ({usedAttachments.length})
           </h5>
           {usedAttachments.map((attachment) => (
             <div
               key={attachment.fileId}
-              className="bg-zinc-800/50 rounded-lg p-3.5 md:p-3 space-y-2"
+              className="rounded-lg p-3.5 md:p-3 space-y-2"
+              style={{ backgroundColor: 'var(--card)' }}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2.5 md:gap-2 min-w-0">
@@ -588,25 +598,26 @@ function AttachmentReferencesCard({ attachments }: { attachments: AttachmentRefe
                     {getClassificationIcon(attachment.classification)}
                   </span>
                   <div className="min-w-0">
-                    <div className="text-base md:text-sm font-medium text-zinc-200 truncate">
+                    <div className="text-base md:text-sm font-medium truncate" style={{ color: 'var(--foreground)' }}>
                       {attachment.filename}
                     </div>
-                    <div className="text-sm md:text-xs text-zinc-500">
+                    <div className="text-sm md:text-xs" style={{ color: 'var(--foreground-muted)' }}>
                       {getClassificationLabel(attachment.classification)}
                     </div>
                   </div>
                 </div>
-                <span className={`text-sm md:text-xs flex-shrink-0 ${getUsageColor(attachment.usedIn)}`}>
+                <span className="text-sm md:text-xs flex-shrink-0" style={{ color: getUsageColor(attachment.usedIn) }}>
                   {attachment.usedIn.length} area{attachment.usedIn.length !== 1 ? "s" : ""}
                 </span>
               </div>
-              <p className="text-sm md:text-xs text-zinc-400 leading-relaxed">{attachment.summary}</p>
+              <p className="text-sm md:text-xs leading-relaxed" style={{ color: 'var(--foreground-secondary)' }}>{attachment.summary}</p>
               {attachment.usedIn.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 md:gap-1">
                   {attachment.usedIn.map((area) => (
                     <span
                       key={area}
-                      className="text-sm md:text-xs px-2 md:px-1.5 py-0.5 bg-green-500/10 text-green-400 rounded"
+                      className="text-sm md:text-xs px-2 md:px-1.5 py-0.5 rounded"
+                      style={{ backgroundColor: 'var(--score-high-bg)', color: 'var(--score-high)' }}
                     >
                       {area}
                     </span>
@@ -621,23 +632,24 @@ function AttachmentReferencesCard({ attachments }: { attachments: AttachmentRefe
       {/* Not Used Files */}
       {notUsedAttachments.length > 0 && (
         <div className="space-y-3 md:space-y-2">
-          <h5 className="text-sm md:text-xs text-zinc-500 uppercase tracking-wide">
+          <h5 className="text-sm md:text-xs uppercase tracking-wide" style={{ color: 'var(--foreground-muted)' }}>
             Files Not Used ({notUsedAttachments.length})
           </h5>
           {notUsedAttachments.map((attachment) => (
             <div
               key={attachment.fileId}
-              className="bg-zinc-800/30 rounded-lg p-3.5 md:p-3 opacity-60"
+              className="rounded-lg p-3.5 md:p-3 opacity-60"
+              style={{ backgroundColor: 'var(--card)' }}
             >
               <div className="flex items-start gap-2.5 md:gap-2">
                 <span className="text-xl md:text-lg flex-shrink-0">
                   {getClassificationIcon(attachment.classification)}
                 </span>
                 <div className="min-w-0">
-                  <div className="text-base md:text-sm font-medium text-zinc-400 truncate">
+                  <div className="text-base md:text-sm font-medium truncate" style={{ color: 'var(--foreground-muted)' }}>
                     {attachment.filename}
                   </div>
-                  <div className="text-sm md:text-xs text-zinc-600">
+                  <div className="text-sm md:text-xs" style={{ color: 'var(--foreground-muted)' }}>
                     {attachment.notUsedReason || getClassificationLabel(attachment.classification)}
                   </div>
                 </div>
@@ -661,31 +673,54 @@ function OpportunityCard({
 }) {
   const { memo, research } = result;
 
+  const getCompanyScoreStyle = (score: number) => {
+    if (score >= 8) return { backgroundColor: 'var(--score-high-bg)', color: 'var(--score-high)' };
+    if (score >= 6) return { backgroundColor: 'var(--score-medium-bg)', color: 'var(--score-medium)' };
+    return { backgroundColor: 'var(--score-low-bg)', color: 'var(--score-low)' };
+  };
+
+  const getFundScoreStyle = (score: number) => {
+    if (score >= 8) return { backgroundColor: 'var(--score-blue-bg)', color: 'var(--score-blue)' };
+    if (score >= 6) return { backgroundColor: 'var(--score-blue-bg)', color: 'var(--score-blue)' };
+    if (score >= 4) return { backgroundColor: 'var(--score-medium-bg)', color: 'var(--score-medium)' };
+    return { backgroundColor: 'var(--score-low-bg)', color: 'var(--score-low)' };
+  };
+
+  const getPartnerScoreStyle = (score: number) => {
+    if (score >= 8) return { backgroundColor: 'var(--score-purple-bg)', color: 'var(--score-purple)' };
+    if (score >= 6) return { backgroundColor: 'var(--score-purple-bg)', color: 'var(--score-purple)' };
+    if (score >= 4) return { backgroundColor: 'var(--score-medium-bg)', color: 'var(--score-medium)' };
+    return { backgroundColor: 'var(--card)', color: 'var(--foreground-muted)' };
+  };
+
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+    <div className="border rounded-xl overflow-hidden shadow-sm" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
       {/* Header */}
       <div
-        className="p-4 md:p-4 cursor-pointer hover:bg-zinc-800/50 transition-colors active:bg-zinc-800/70"
+        className="p-4 md:p-4 cursor-pointer transition-colors"
+        style={{ backgroundColor: 'var(--card)' }}
         onClick={onToggle}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--card-hover)'}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--card)'}
       >
         {/* Title and Stage - Stack on very small screens */}
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-lg md:text-lg font-semibold text-white truncate">{research.company.name}</h3>
-              <span className="text-sm md:text-xs px-2.5 md:px-2 py-0.5 bg-zinc-800 rounded-full text-zinc-400 flex-shrink-0">
+              <h3 className="text-lg md:text-lg font-semibold truncate" style={{ color: 'var(--foreground)' }}>{research.company.name}</h3>
+              <span className="text-sm md:text-xs px-2.5 md:px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--card-hover)', color: 'var(--foreground-muted)' }}>
                 {research.company.stage}
               </span>
               {/* Metrics badge */}
               {(result.totalTokens || result.totalTimeMs) && (
-                <span className="text-[10px] px-2 py-0.5 bg-zinc-800/50 rounded-full text-zinc-500 flex-shrink-0">
+                <span className="text-[10px] px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--card-hover)', color: 'var(--foreground-muted)' }}>
                   {result.totalTokens ? formatTokens(result.totalTokens) : ""}
                   {result.totalTokens && result.totalTimeMs ? " · " : ""}
                   {result.totalTimeMs ? formatTime(result.totalTimeMs) : ""}
                 </span>
               )}
             </div>
-            <p className="text-sm md:text-sm text-zinc-400 mt-1.5 md:mt-1 line-clamp-2 leading-relaxed">{memo.oneLiner}</p>
+            <p className="text-sm md:text-sm mt-1.5 md:mt-1 line-clamp-2 leading-relaxed" style={{ color: 'var(--foreground-muted)' }}>{memo.oneLiner}</p>
           </div>
 
           {/* 3 Score Indicators - More compact on mobile */}
@@ -693,51 +728,32 @@ function OpportunityCard({
             {/* Company Score */}
             <div className="text-center">
               <div
-                className={`w-12 h-12 md:w-11 md:h-11 rounded-full flex items-center justify-center text-sm md:text-xs font-bold ${
-                  memo.companyScorecard.overall >= 8
-                    ? "bg-green-500/20 text-green-400"
-                    : memo.companyScorecard.overall >= 6
-                    ? "bg-yellow-500/20 text-yellow-400"
-                    : "bg-red-500/20 text-red-400"
-                }`}
+                className="w-12 h-12 md:w-11 md:h-11 rounded-full flex items-center justify-center text-sm md:text-xs font-bold"
+                style={getCompanyScoreStyle(memo.companyScorecard.overall)}
               >
                 {memo.companyScorecard.overall.toFixed(1)}
               </div>
-              <span className="text-xs md:text-[10px] text-zinc-500 mt-1 md:mt-0.5 block">Company</span>
+              <span className="text-xs md:text-[10px] mt-1 md:mt-0.5 block" style={{ color: 'var(--foreground-muted)' }}>Company</span>
             </div>
             {/* Fund Fit Score */}
             <div className="text-center">
               <div
-                className={`w-12 h-12 md:w-11 md:h-11 rounded-full flex items-center justify-center text-sm md:text-xs font-bold ${
-                  memo.fundFit.score >= 8
-                    ? "bg-blue-500/20 text-blue-400"
-                    : memo.fundFit.score >= 6
-                    ? "bg-blue-500/20 text-blue-300"
-                    : memo.fundFit.score >= 4
-                    ? "bg-yellow-500/20 text-yellow-400"
-                    : "bg-red-500/20 text-red-400"
-                }`}
+                className="w-12 h-12 md:w-11 md:h-11 rounded-full flex items-center justify-center text-sm md:text-xs font-bold"
+                style={getFundScoreStyle(memo.fundFit.score)}
               >
                 {memo.fundFit.score.toFixed(1)}
               </div>
-              <span className="text-xs md:text-[10px] text-zinc-500 mt-1 md:mt-0.5 block">Fund</span>
+              <span className="text-xs md:text-[10px] mt-1 md:mt-0.5 block" style={{ color: 'var(--foreground-muted)' }}>Fund</span>
             </div>
             {/* Partner Fit Score */}
             <div className="text-center">
               <div
-                className={`w-12 h-12 md:w-11 md:h-11 rounded-full flex items-center justify-center text-sm md:text-xs font-bold ${
-                  memo.partnerFit.overallFitScore >= 8
-                    ? "bg-purple-500/20 text-purple-400"
-                    : memo.partnerFit.overallFitScore >= 6
-                    ? "bg-purple-500/20 text-purple-300"
-                    : memo.partnerFit.overallFitScore >= 4
-                    ? "bg-yellow-500/20 text-yellow-400"
-                    : "bg-zinc-500/20 text-zinc-400"
-                }`}
+                className="w-12 h-12 md:w-11 md:h-11 rounded-full flex items-center justify-center text-sm md:text-xs font-bold"
+                style={getPartnerScoreStyle(memo.partnerFit.overallFitScore)}
               >
                 {memo.partnerFit.overallFitScore.toFixed(1)}
               </div>
-              <span className="text-xs md:text-[10px] text-zinc-500 mt-1 md:mt-0.5 block">Partners</span>
+              <span className="text-xs md:text-[10px] mt-1 md:mt-0.5 block" style={{ color: 'var(--foreground-muted)' }}>Partners</span>
             </div>
           </div>
         </div>
@@ -747,13 +763,14 @@ function OpportunityCard({
           {memo.tags.slice(0, 4).map((tag) => (
             <span
               key={tag}
-              className="text-sm md:text-xs px-2.5 md:px-2 py-1 md:py-0.5 bg-blue-500/20 text-blue-400 rounded-full"
+              className="text-sm md:text-xs px-2.5 md:px-2 py-1 md:py-0.5 rounded-full"
+              style={{ backgroundColor: 'var(--score-blue-bg)', color: 'var(--score-blue)' }}
             >
               {tag}
             </span>
           ))}
           {memo.tags.length > 4 && (
-            <span className="text-sm md:text-xs px-2.5 md:px-2 py-1 md:py-0.5 bg-zinc-800 text-zinc-500 rounded-full">
+            <span className="text-sm md:text-xs px-2.5 md:px-2 py-1 md:py-0.5 rounded-full" style={{ backgroundColor: 'var(--card-hover)', color: 'var(--foreground-muted)' }}>
               +{memo.tags.length - 4}
             </span>
           )}
@@ -766,7 +783,8 @@ function OpportunityCard({
               href={research.company.website}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm md:text-xs px-4 md:px-3 py-2.5 md:py-1.5 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 rounded-lg text-zinc-300 transition-colors touch-manipulation"
+              className="text-sm md:text-xs px-4 md:px-3 py-2.5 md:py-1.5 rounded-lg transition-colors touch-manipulation"
+              style={{ backgroundColor: 'var(--card-hover)', color: 'var(--foreground-secondary)' }}
             >
               Website
             </a>
@@ -776,14 +794,16 @@ function OpportunityCard({
               href={result.opportunityWebUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm md:text-xs px-4 md:px-3 py-2.5 md:py-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg text-white transition-colors touch-manipulation"
+              className="text-sm md:text-xs px-4 md:px-3 py-2.5 md:py-1.5 rounded-lg transition-colors touch-manipulation"
+              style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
             >
               View in Attio
             </a>
           )}
           <button
             onClick={() => onToggle()}
-            className="text-sm md:text-xs px-4 md:px-3 py-2.5 md:py-1.5 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 rounded-lg text-zinc-300 transition-colors touch-manipulation"
+            className="text-sm md:text-xs px-4 md:px-3 py-2.5 md:py-1.5 rounded-lg transition-colors touch-manipulation"
+            style={{ backgroundColor: 'var(--card-hover)', color: 'var(--foreground-secondary)' }}
           >
             {expanded ? "Hide Memo" : "Full Memo"}
           </button>
@@ -792,36 +812,36 @@ function OpportunityCard({
 
       {/* Expanded Content */}
       {expanded && (
-        <div className="border-t border-zinc-800 p-4 md:p-4 space-y-5 md:space-y-4">
+        <div className="p-4 md:p-4 space-y-5 md:space-y-4" style={{ borderTop: '1px solid var(--border)', backgroundColor: 'var(--background-secondary)' }}>
           {/* Company Scorecard */}
           <div>
-            <h4 className="text-base md:text-sm font-medium text-zinc-300 mb-3">Company Scorecard</h4>
+            <h4 className="text-base md:text-sm font-medium mb-3" style={{ color: 'var(--foreground-secondary)' }}>Company Scorecard</h4>
             <CompanyScorecard scores={memo.companyScorecard} />
           </div>
 
           {/* Fund Fit */}
           <div>
-            <h4 className="text-base md:text-sm font-medium text-zinc-300 mb-3">Fund Fit</h4>
+            <h4 className="text-base md:text-sm font-medium mb-3" style={{ color: 'var(--foreground-secondary)' }}>Fund Fit</h4>
             <FundFitCard fundFit={memo.fundFit} />
           </div>
 
           {/* Key Info - Single column on very small screens */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-4">
             <div>
-              <h4 className="text-sm md:text-xs text-zinc-500 uppercase tracking-wide mb-1.5 md:mb-1">Industry</h4>
-              <p className="text-base md:text-sm text-zinc-300">{research.company.industry}</p>
+              <h4 className="text-sm md:text-xs uppercase tracking-wide mb-1.5 md:mb-1" style={{ color: 'var(--foreground-muted)' }}>Industry</h4>
+              <p className="text-base md:text-sm" style={{ color: 'var(--foreground-secondary)' }}>{research.company.industry}</p>
             </div>
             <div>
-              <h4 className="text-sm md:text-xs text-zinc-500 uppercase tracking-wide mb-1.5 md:mb-1">Funding</h4>
-              <p className="text-base md:text-sm text-zinc-300">{research.funding.totalRaised}</p>
+              <h4 className="text-sm md:text-xs uppercase tracking-wide mb-1.5 md:mb-1" style={{ color: 'var(--foreground-muted)' }}>Funding</h4>
+              <p className="text-base md:text-sm" style={{ color: 'var(--foreground-secondary)' }}>{research.funding.totalRaised}</p>
             </div>
             <div>
-              <h4 className="text-sm md:text-xs text-zinc-500 uppercase tracking-wide mb-1.5 md:mb-1">Location</h4>
-              <p className="text-base md:text-sm text-zinc-300">{research.company.location || "Unknown"}</p>
+              <h4 className="text-sm md:text-xs uppercase tracking-wide mb-1.5 md:mb-1" style={{ color: 'var(--foreground-muted)' }}>Location</h4>
+              <p className="text-base md:text-sm" style={{ color: 'var(--foreground-secondary)' }}>{research.company.location || "Unknown"}</p>
             </div>
             <div>
-              <h4 className="text-sm md:text-xs text-zinc-500 uppercase tracking-wide mb-1.5 md:mb-1">Investors</h4>
-              <p className="text-base md:text-sm text-zinc-300">
+              <h4 className="text-sm md:text-xs uppercase tracking-wide mb-1.5 md:mb-1" style={{ color: 'var(--foreground-muted)' }}>Investors</h4>
+              <p className="text-base md:text-sm" style={{ color: 'var(--foreground-secondary)' }}>
                 {research.funding.investors.slice(0, 3).join(", ")}
               </p>
             </div>
@@ -829,13 +849,13 @@ function OpportunityCard({
 
           {/* Founders */}
           <div>
-            <h4 className="text-sm md:text-xs text-zinc-500 uppercase tracking-wide mb-2">Founders</h4>
+            <h4 className="text-sm md:text-xs uppercase tracking-wide mb-2" style={{ color: 'var(--foreground-muted)' }}>Founders</h4>
             <div className="space-y-3 md:space-y-2">
               {research.founders.slice(0, 3).map((founder, i) => (
                 <div key={i}>
-                  <span className="text-base md:text-sm text-zinc-300 font-medium">{founder.name}</span>
-                  <span className="text-base md:text-sm text-zinc-500"> - {founder.role}</span>
-                  <p className="text-sm md:text-xs text-zinc-500 mt-1 md:mt-0.5 line-clamp-2 leading-relaxed">{founder.background}</p>
+                  <span className="text-base md:text-sm font-medium" style={{ color: 'var(--foreground-secondary)' }}>{founder.name}</span>
+                  <span className="text-base md:text-sm" style={{ color: 'var(--foreground-muted)' }}> - {founder.role}</span>
+                  <p className="text-sm md:text-xs mt-1 md:mt-0.5 line-clamp-2 leading-relaxed" style={{ color: 'var(--foreground-muted)' }}>{founder.background}</p>
                 </div>
               ))}
             </div>
@@ -843,38 +863,39 @@ function OpportunityCard({
 
           {/* Summary */}
           <div>
-            <h4 className="text-sm md:text-xs text-zinc-500 uppercase tracking-wide mb-2">Summary</h4>
-            <p className="text-base md:text-sm text-zinc-400 leading-relaxed">{memo.summary}</p>
+            <h4 className="text-sm md:text-xs uppercase tracking-wide mb-2" style={{ color: 'var(--foreground-muted)' }}>Summary</h4>
+            <p className="text-base md:text-sm leading-relaxed" style={{ color: 'var(--foreground-secondary)' }}>{memo.summary}</p>
           </div>
 
           {/* Risks */}
           <div>
-            <h4 className="text-sm md:text-xs text-zinc-500 uppercase tracking-wide mb-2">Risks</h4>
-            <p className="text-base md:text-sm text-zinc-400 leading-relaxed">{memo.sections.risksAndFlaws}</p>
+            <h4 className="text-sm md:text-xs uppercase tracking-wide mb-2" style={{ color: 'var(--foreground-muted)' }}>Risks</h4>
+            <p className="text-base md:text-sm leading-relaxed" style={{ color: 'var(--foreground-secondary)' }}>{memo.sections.risksAndFlaws}</p>
           </div>
 
           {/* Strategic Partner Fit */}
           {memo.partnerFit && (
             <div>
-              <h4 className="text-base md:text-sm font-medium text-zinc-300 mb-3">Strategic Partner Fit</h4>
+              <h4 className="text-base md:text-sm font-medium mb-3" style={{ color: 'var(--foreground-secondary)' }}>Strategic Partner Fit</h4>
               <StrategicFitCard strategicFit={memo.partnerFit} />
             </div>
           )}
 
           {/* Infographic */}
           {memo.infographicBase64 && (
-            <div className="pt-4 border-t border-zinc-700">
+            <div className="pt-4" style={{ borderTop: '1px solid var(--border)' }}>
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-base md:text-sm font-medium text-zinc-300">Investment Infographic</h4>
+                <h4 className="text-base md:text-sm font-medium" style={{ color: 'var(--foreground-secondary)' }}>Investment Infographic</h4>
                 <a
                   href={memo.infographicBase64}
                   download={`${research.company.name}-infographic.png`}
-                  className="text-sm md:text-xs px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-300 transition-colors"
+                  className="text-sm md:text-xs px-3 py-1.5 rounded-lg transition-colors"
+                  style={{ backgroundColor: 'var(--card-hover)', color: 'var(--foreground-secondary)' }}
                 >
                   Download
                 </a>
               </div>
-              <div className="bg-zinc-800/50 rounded-lg p-4 flex justify-center">
+              <div className="rounded-lg p-4 flex justify-center" style={{ backgroundColor: 'var(--card)' }}>
                 <img
                   src={memo.infographicBase64}
                   alt={`${research.company.name} Investment Infographic`}
@@ -903,16 +924,16 @@ function OpportunityCard({
 
           {/* Sources */}
           {memo.sources && memo.sources.length > 0 && (
-            <div className="pt-4 border-t border-zinc-700">
-              <h4 className="text-base md:text-sm font-medium text-zinc-300 mb-3">Sources & References</h4>
+            <div className="pt-4" style={{ borderTop: '1px solid var(--border)' }}>
+              <h4 className="text-base md:text-sm font-medium mb-3" style={{ color: 'var(--foreground-secondary)' }}>Sources & References</h4>
               <SourcesCard sources={memo.sources} />
             </div>
           )}
 
           {/* Attachment References */}
           {memo.attachmentReferences && memo.attachmentReferences.length > 0 && (
-            <div className="pt-4 border-t border-zinc-700">
-              <h4 className="text-base md:text-sm font-medium text-zinc-300 mb-3">Analyzed Files</h4>
+            <div className="pt-4" style={{ borderTop: '1px solid var(--border)' }}>
+              <h4 className="text-base md:text-sm font-medium mb-3" style={{ color: 'var(--foreground-secondary)' }}>Analyzed Files</h4>
               <AttachmentReferencesCard attachments={memo.attachmentReferences} />
             </div>
           )}
@@ -944,18 +965,18 @@ function ProcessingCard({
   metrics?: { tokens: number; elapsed: number };
 }) {
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 md:p-4">
+    <div className="border rounded-xl p-4 md:p-4 shadow-sm" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 md:w-8 md:h-8 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-          <span className="animate-spin text-blue-400 text-lg md:text-base">○</span>
+        <div className="w-10 h-10 md:w-8 md:h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--score-blue-bg)' }}>
+          <span className="animate-spin text-lg md:text-base" style={{ color: 'var(--score-blue)' }}>○</span>
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="text-lg md:text-lg font-semibold text-white truncate">{company}</h3>
-          <p className="text-sm md:text-xs text-zinc-500">Processing...</p>
+          <h3 className="text-lg md:text-lg font-semibold truncate" style={{ color: 'var(--foreground)' }}>{company}</h3>
+          <p className="text-sm md:text-xs" style={{ color: 'var(--foreground-muted)' }}>Processing...</p>
         </div>
         {/* Live Metrics */}
         {metrics && (
-          <div className="text-right text-xs md:text-[10px] text-zinc-500 flex-shrink-0">
+          <div className="text-right text-xs md:text-[10px] flex-shrink-0" style={{ color: 'var(--foreground-muted)' }}>
             <div>{formatTokens(metrics.tokens)} tokens</div>
             <div>{formatTime(metrics.elapsed)}</div>
           </div>
@@ -997,10 +1018,17 @@ export default function Home() {
   const [processingCompany, setProcessingCompany] = useState("");
   const [pipelineStatus, setPipelineStatus] = useState<PipelineStatus>(initialPipelineStatus);
   const [liveMetrics, setLiveMetrics] = useState({ tokens: 0, elapsed: 0 });
+  const [mounted, setMounted] = useState(false);
 
+  const { resolvedTheme } = useTheme();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounterRef = useRef(0); // Track drag enter/leave for nested elements
+
+  // Handle hydration for theme
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // File handling callbacks
   const handleFilesAdded = useCallback((files: AttachedFile[]) => {
@@ -1290,10 +1318,11 @@ export default function Home() {
   };
 
   return (
-    <main className="flex flex-col md:flex-row h-screen">
+    <main className="flex flex-col md:flex-row overflow-hidden" style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)', height: '100dvh' }}>
       {/* Main Panel - Full width on mobile, half on desktop */}
       <div
-        className="flex w-full md:w-1/2 md:border-r border-zinc-800 flex-col relative flex-1"
+        className="flex flex-col md:w-1/2 md:border-r overflow-hidden"
+        style={{ backgroundColor: 'var(--background)', borderColor: 'var(--border)', flex: '1 1 auto' }}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onDragOver={handleDragOver}
@@ -1301,15 +1330,15 @@ export default function Home() {
       >
         {/* Drop Overlay */}
         {isDraggingOver && (
-          <div className="absolute inset-0 bg-blue-500/10 border-2 border-dashed border-blue-500 z-50 flex items-center justify-center backdrop-blur-sm">
-            <div className="bg-zinc-900/90 rounded-xl p-6 md:p-8 text-center shadow-2xl mx-4">
-              <div className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-3 md:mb-4 rounded-full bg-blue-500/20 flex items-center justify-center">
-                <svg className="w-6 h-6 md:w-8 md:h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="absolute inset-0 border-2 border-dashed z-50 flex items-center justify-center backdrop-blur-sm" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'var(--info)' }}>
+            <div className="rounded-xl p-6 md:p-8 text-center shadow-2xl mx-4" style={{ backgroundColor: 'var(--card)' }}>
+              <div className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-3 md:mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--score-blue-bg)' }}>
+                <svg className="w-6 h-6 md:w-8 md:h-8" style={{ color: 'var(--info)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
               </div>
-              <p className="text-base md:text-lg font-medium text-white">Drop files to analyze</p>
-              <p className="text-xs md:text-sm text-zinc-400 mt-1">PDF, images, docs, audio, video...</p>
+              <p className="text-base md:text-lg font-medium" style={{ color: 'var(--foreground)' }}>Drop files to analyze</p>
+              <p className="text-xs md:text-sm mt-1" style={{ color: 'var(--foreground-muted)' }}>PDF, images, docs, audio, video...</p>
             </div>
           </div>
         )}
@@ -1346,17 +1375,27 @@ export default function Home() {
         />
 
         {/* Header */}
-        <div className="p-4 md:p-4 border-b border-zinc-800">
-          <h1 className="text-xl md:text-xl font-bold">VC Associate</h1>
-          <p className="text-sm md:text-sm text-zinc-500">AI-powered investment research</p>
+        <div className="px-4 py-3 md:py-4 border-b flex items-center justify-between flex-shrink-0" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--background)' }}>
+          <div>
+            <div className="flex items-center gap-2">
+              <img
+                src={mounted && resolvedTheme === 'light' ? '/logo-light.png' : '/logo-dark.png'}
+                alt="HeyHo"
+                className="h-7 w-auto"
+              />
+              <span className="text-xl font-bold" style={{ color: 'var(--foreground)' }}>Bot</span>
+            </div>
+            <p className="hidden md:block text-sm mt-1" style={{ color: 'var(--foreground-muted)' }}>Your Gemini powered AI VC associate</p>
+          </div>
+          <ThemeToggle />
         </div>
 
         {/* Messages + Inline Cards on Mobile */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-4 space-y-4 md:space-y-4">
+        <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4" style={{ minHeight: 0 }}>
           {messages.length === 0 && !isProcessing && opportunities.length === 0 && (
-            <div className="text-center py-10 md:py-12 px-4">
-              <p className="text-zinc-500 text-base md:text-base">Enter a company name or drop files to start</p>
-              <p className="text-zinc-600 text-sm md:text-sm mt-2">
+            <div className="text-center py-6 md:py-12 px-3 md:px-4">
+              <p className="text-sm md:text-base" style={{ color: 'var(--foreground-muted)' }}>Enter a company name or drop files to start</p>
+              <p className="text-xs md:text-sm mt-1 md:mt-2" style={{ color: 'var(--foreground-secondary)' }}>
                 Try: &quot;Anthropic&quot;, &quot;Mistral AI&quot;, or drop a pitch deck
               </p>
             </div>
@@ -1368,14 +1407,14 @@ export default function Home() {
               className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[85%] md:max-w-[80%] rounded-lg px-4 md:px-4 py-3 md:py-2 ${
-                  msg.role === "user"
-                    ? "bg-blue-600 text-white"
-                    : "bg-zinc-800 text-zinc-300"
-                }`}
+                className="max-w-[90%] md:max-w-[80%] rounded-lg px-3 md:px-4 py-2 md:py-2"
+                style={msg.role === "user"
+                  ? { backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }
+                  : { backgroundColor: 'var(--card)', color: 'var(--foreground-secondary)' }
+                }
               >
-                <p className="text-base md:text-sm leading-relaxed">{msg.content}</p>
-                <p className="text-sm md:text-xs opacity-50 mt-1.5 md:mt-1">
+                <p className="text-sm md:text-sm leading-relaxed">{msg.content}</p>
+                <p className="text-xs md:text-xs opacity-50 mt-1">
                   {msg.timestamp.toLocaleTimeString()}
                 </p>
               </div>
@@ -1394,7 +1433,7 @@ export default function Home() {
           )}
 
           {/* Inline Cards on Mobile - Completed */}
-          <div className="md:hidden space-y-4">
+          <div className="md:hidden space-y-3">
             {opportunities.map((opp) => (
               <OpportunityCard
                 key={opp.id}
@@ -1409,7 +1448,7 @@ export default function Home() {
         </div>
 
         {/* Input */}
-        <div className="p-4 md:p-4 border-t border-zinc-800 space-y-3">
+        <div className="px-4 py-3 md:py-4 border-t space-y-3 flex-shrink-0" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--background)' }}>
           {/* Attachment List */}
           {attachments.length > 0 && (
             <AttachmentList
@@ -1427,7 +1466,8 @@ export default function Home() {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isProcessing}
-              className="p-3.5 md:p-2 rounded-lg transition-colors bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-300 disabled:opacity-50 touch-manipulation"
+              className="p-3.5 md:p-2 rounded-lg transition-colors disabled:opacity-50 touch-manipulation"
+              style={{ backgroundColor: 'var(--card)', color: 'var(--foreground-muted)' }}
               title="Attach files"
             >
               <svg className="w-6 h-6 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1442,14 +1482,20 @@ export default function Home() {
               onChange={(e) => setInput(e.target.value)}
               placeholder={attachments.length > 0 ? "Add context..." : "Company name or files..."}
               disabled={isProcessing}
-              className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-4 md:px-4 py-3 md:py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 disabled:opacity-50 text-base md:text-sm"
+              className="flex-1 border rounded-lg px-4 md:px-4 py-3 md:py-2 focus:outline-none focus:border-blue-500 disabled:opacity-50 text-base md:text-sm"
+              style={{
+                backgroundColor: 'var(--background-secondary)',
+                borderColor: 'var(--border-strong)',
+                color: 'var(--foreground)'
+              }}
             />
 
             {/* Submit Button - Larger touch target on mobile */}
             <button
               type="submit"
               disabled={isProcessing || (!input.trim() && attachments.length === 0)}
-              className="px-5 md:px-4 py-3 md:py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:text-zinc-500 rounded-lg text-white font-medium transition-colors touch-manipulation"
+              className="px-5 md:px-4 py-3 md:py-2 rounded-lg font-medium transition-colors touch-manipulation disabled:opacity-50"
+              style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
             >
               {isProcessing ? (
                 <span className="flex items-center gap-1">
@@ -1470,15 +1516,17 @@ export default function Home() {
       </div>
 
       {/* Right Panel - Opportunities (Desktop only - mobile shows inline in chat) */}
-      <div className="hidden md:flex w-1/2 flex-col bg-zinc-950">
-        {/* Header */}
-        <div className="p-4 border-b border-zinc-800">
-          <h2 className="text-lg font-semibold">Opportunities</h2>
-          <p className="text-sm text-zinc-500">{opportunities.length} researched</p>
+      <div className="hidden md:flex md:w-1/2 flex-col overflow-hidden" style={{ backgroundColor: 'var(--background-secondary)' }}>
+        {/* Header - matches left panel */}
+        <div className="px-4 py-3 md:py-4 border-b flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
+          <div className="flex items-center gap-2 h-7">
+            <h2 className="text-xl font-bold" style={{ color: 'var(--foreground)' }}>Opportunities</h2>
+          </div>
+          <p className="text-sm mt-1" style={{ color: 'var(--foreground-muted)' }}>{opportunities.length} researched</p>
         </div>
 
         {/* Opportunities List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ minHeight: 0 }}>
           {/* Processing Card */}
           {isProcessing && processingCompany && (
             <ProcessingCard
@@ -1500,7 +1548,7 @@ export default function Home() {
 
           {!isProcessing && opportunities.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-zinc-600">No opportunities yet</p>
+              <p style={{ color: 'var(--foreground-muted)' }}>No opportunities yet</p>
             </div>
           )}
         </div>

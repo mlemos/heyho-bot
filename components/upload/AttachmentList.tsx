@@ -50,10 +50,10 @@ export function AttachmentList({
       {/* Header with count and clear button */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-zinc-400">
+          <span className="text-xs" style={{ color: 'var(--foreground-secondary)' }}>
             {files.length} file{files.length !== 1 ? "s" : ""} attached
           </span>
-          <span className="text-xs text-zinc-600">
+          <span className="text-xs" style={{ color: 'var(--foreground-muted)' }}>
             ({formatFileSize(totalSize)})
           </span>
         </div>
@@ -61,10 +61,8 @@ export function AttachmentList({
         {onClearAll && files.length > 1 && (
           <button
             onClick={onClearAll}
-            className="
-              text-xs text-zinc-500 hover:text-red-400
-              transition-colors duration-200
-            "
+            className="text-xs hover:text-red-400 transition-colors duration-200"
+            style={{ color: 'var(--foreground-muted)' }}
           >
             Clear all
           </button>
