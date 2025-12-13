@@ -1,9 +1,10 @@
 # Implementation Plan: VC Associate
 
-## Status: Phase 2 Complete
+## Status: Phase 3 Complete
 
-The core MVP plus multi-modal support and mobile UX is functional with the following features working:
+The full-featured VC associate is complete with the following capabilities:
 - Gemini 3 Pro (`gemini-3-pro-preview`) + Google Search grounding
+- Gemini 3 Pro Image (`gemini-3-pro-image-preview`) for infographics (Nano Banana Pro)
 - Parallel research pipeline (6 concurrent queries)
 - Three-way scoring (Company, Fund Fit, Partner Fit)
 - Real-time SSE streaming with progress tracking
@@ -12,6 +13,9 @@ The core MVP plus multi-modal support and mobile UX is functional with the follo
 - **Smart file triage** (AI classifies files and routes content to research areas)
 - **Attachment references** (memo documents what files were used)
 - **Mobile-responsive UI** (tab navigation, touch-optimized inputs)
+- **Attio CRM integration** (Companies, Investment Opportunities, Notes)
+- **AI-generated infographics** (visual investment summaries)
+- **Token & time tracking** (real-time metrics during processing)
 
 ---
 
@@ -303,6 +307,8 @@ Users can submit any combination of:
 - **AI Engine**: Gemini 3 Pro (`gemini-3-pro-preview`) via Vercel AI SDK
   - Google Search grounding for research
   - Native multi-modal (images, PDFs, Office docs, audio, video)
+- **Image Generation**: Gemini 3 Pro Image (`gemini-3-pro-image-preview`) - Nano Banana Pro
+- **CRM**: Attio API for Companies, Investment Opportunities, Notes
 - **Frontend**: Next.js 16 with App Router
 - **Language**: TypeScript with strict mode
 - **Validation**: Zod schemas for structured outputs
@@ -461,11 +467,43 @@ All scores use 0.0-10.0 scale with one decimal precision.
 
 ---
 
-## Future Work (Phase 3+)
+## Phase 3: CRM Integration + Infographics (Complete)
+
+### 3.1 Attio CRM Integration ✅
+
+- [x] OpenAPI types generation from Attio API spec
+- [x] API client with typed requests (`src/integrations/attio/client.ts`)
+- [x] Company upsert with domain-based deduplication
+- [x] Investment Opportunity creation linked to companies
+- [x] Note attachment for investment memos (markdown format)
+- [x] "Gemini 3" tag on opportunities for tracking
+- [x] Graceful fallback when ATTIO_API_KEY not configured
+- [x] Web URL links to Attio records in UI
+
+### 3.2 AI-Generated Infographics ✅
+
+- [x] Gemini 3 Pro Image model integration (Nano Banana Pro)
+- [x] Infographic prompt with full memo content
+- [x] Landscape format for better display
+- [x] Click-to-open in new tab (blob URL for large images)
+- [x] Separate pipeline step with progress tracking
+- [x] Graceful failure handling (non-blocking)
+
+### 3.3 Token & Time Tracking ✅
+
+- [x] Token usage tracking from all research calls
+- [x] Real-time metrics SSE event type
+- [x] Live token count and elapsed time during processing
+- [x] Final totals displayed on completed opportunity cards
+- [x] Format helpers for K/M tokens and time display
+
+---
+
+## Future Work (Phase 4+)
 
 ### Integrations
-- [ ] Real Attio CRM integration
-- [ ] Real Google Drive integration
+- [x] ~~Real Attio CRM integration~~ - Completed
+- [ ] Google Drive integration for memo storage
 - [ ] Full memo download (PDF/Markdown)
 
 ### Additional Input Modes
@@ -492,8 +530,10 @@ All scores use 0.0-10.0 scale with one decimal precision.
 # .env.local
 GOOGLE_GENERATIVE_AI_API_KEY=your-gemini-api-key
 
-# Future
+# Optional: Attio CRM Integration
 ATTIO_API_KEY=your-attio-api-key
+
+# Future: Google Drive
 GOOGLE_SERVICE_ACCOUNT_KEY=path/to/service-account.json
 GOOGLE_DRIVE_ROOT_FOLDER_ID=your-folder-id
 ```

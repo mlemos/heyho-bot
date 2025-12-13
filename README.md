@@ -11,6 +11,10 @@ A multi-modal AI-based VC associate built for the AGI House Gemini 3 hackathon. 
   - **Company Scorecard** (0.0-10.0): Objective company quality metrics (Team, Market, Product, Traction, Competition)
   - **Fund Fit** (0.0-10.0): Alignment with fund thesis (Stage, Sector, Geography, Check Size)
   - **Partner Fit** (0.0-10.0): Strategic partner alignment analysis
+- **AI-Generated Infographics**: Gemini 3 Pro Image (Nano Banana Pro) generates visual investment summaries
+- **Attio CRM Integration**: Automatic creation of Companies, Investment Opportunities, and Notes
+- **Rich Memos with Citations**: Detailed sections with inline source citations
+- **Token & Time Tracking**: Real-time metrics during processing, final totals in results
 - **Attachment References**: Memos document which files were analyzed and how they were used
 - **Mobile-Responsive**: Inline cards in single-panel view on mobile, touch-optimized UI
 - **Real-time Progress**: SSE streaming with visual pipeline progress tracking
@@ -20,8 +24,11 @@ A multi-modal AI-based VC associate built for the AGI House Gemini 3 hackathon. 
 ## Tech Stack
 
 - **Frontend**: Next.js 16, React, Tailwind CSS
-- **AI**: Gemini 3 Pro (`gemini-3-pro-preview`) via Vercel AI SDK (`@ai-sdk/google`)
+- **AI Models**:
+  - Gemini 3 Pro (`gemini-3-pro-preview`) - Research, synthesis, and memo generation
+  - Gemini 3 Pro Image (`gemini-3-pro-image-preview`) - Infographic generation (Nano Banana Pro)
 - **Search**: Google Search grounding for real-time company research
+- **CRM**: Attio API for Companies, Investment Opportunities, and Notes
 - **Validation**: Zod schemas for structured outputs
 - **Language**: TypeScript with strict mode
 
@@ -64,8 +71,13 @@ sandbox-gemini/
 │   └── api/process/route.ts     # Streaming API endpoint
 ├── src/
 │   ├── lib/
-│   │   ├── research.ts          # Research pipeline functions
+│   │   ├── research.ts          # Research pipeline + infographic generation
 │   │   └── multimodal.ts        # File triage and context extraction
+│   ├── integrations/
+│   │   └── attio/               # Attio CRM integration
+│   │       ├── client.ts        # API client for companies, opportunities, notes
+│   │       ├── index.ts         # Public exports
+│   │       └── types.ts         # OpenAPI-generated types
 │   ├── config/
 │   │   ├── fund-thesis.ts       # Fund investment thesis config
 │   │   └── strategic-partners.ts # Strategic partners config
@@ -127,7 +139,11 @@ Define your fund's strategic partners for fit analysis:
    - Partner Fit analysis
    - Attachment references (what files were used and how)
    - One-liner and tags
-7. **Save to CRM** - Store opportunity (mocked)
+7. **Generate Infographic** - Gemini 3 Pro Image creates visual investment summary
+8. **Save to Attio CRM**:
+   - Upsert Company record (domain-based deduplication)
+   - Create Investment Opportunity linked to company
+   - Attach investment memo as Note to opportunity
 
 ### Streaming Progress
 
@@ -154,7 +170,9 @@ The API uses Server-Sent Events (SSE) to stream real-time progress:
 
 ## Future Enhancements
 
-- [ ] Real CRM integration (Attio)
+- [x] ~~Real CRM integration (Attio)~~ - Completed
+- [x] ~~AI-generated infographics~~ - Completed (Nano Banana Pro)
+- [x] ~~Token & time tracking~~ - Completed
 - [ ] Google Drive integration for memo storage
 - [ ] URL parsing (paste company website)
 - [ ] Batch processing (multiple companies from single input)
@@ -166,7 +184,8 @@ The API uses Server-Sent Events (SSE) to stream real-time progress:
 # Required
 GOOGLE_GENERATIVE_AI_API_KEY=your-gemini-api-key
 
-# Future: CRM Integration
+# Optional: Attio CRM Integration
+# If not set, opportunities are saved locally only
 ATTIO_API_KEY=your-attio-api-key
 
 # Future: Google Drive
