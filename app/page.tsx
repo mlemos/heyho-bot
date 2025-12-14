@@ -5,6 +5,7 @@ import type { CompanyResearch, InvestmentMemo, StrategicFitAnalysis, FundFit, At
 import { AttachmentList, type AttachedFile } from "@/components/upload";
 import { getClassificationLabel, getClassificationIcon } from "@/src/lib/multimodal";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useTheme } from "next-themes";
 
 // ===========================================
 // Types
@@ -1055,12 +1056,19 @@ export default function Home() {
   const [processingCompany, setProcessingCompany] = useState("");
   const [pipelineStatus, setPipelineStatus] = useState<PipelineStatus>(initialPipelineStatus);
   const [liveMetrics, setLiveMetrics] = useState({ tokens: 0, elapsed: 0 });
+  const [mounted, setMounted] = useState(false);
   const [leftPanelWidth, setLeftPanelWidth] = useState(50); // percentage
   const [isResizing, setIsResizing] = useState(false);
 
+  const { resolvedTheme } = useTheme();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounterRef = useRef(0); // Track drag enter/leave for nested elements
+
+  // Handle hydration for theme
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Panel resize handlers
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
@@ -1497,6 +1505,7 @@ export default function Home() {
                 src="/app-icon.svg"
                 alt="AI VC Associate"
                 className="h-7 w-auto"
+                style={{ filter: mounted && resolvedTheme === 'dark' ? 'invert(1)' : 'none' }}
               />
               <span className="text-xl font-bold" style={{ color: 'var(--foreground)' }}>VC Associate</span>
             </div>
