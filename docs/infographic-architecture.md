@@ -1,4 +1,4 @@
-# HeyHo Bot: Technical Architecture
+# AI VC Associate: Technical Architecture
 
 ## System Overview
 

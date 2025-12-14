@@ -45,3 +45,6 @@ coverage/
 *.json.key
 service-account*.json
 credentials*.json
+
+# Branding (customize for your own deployment)
+heyho*

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PWA Icon Generator for HeyHo Bot
+ * PWA Icon Generator for AI VC Associate
  *
  * Creates square PWA icons with the AI sparkle icon.
  * Uses pure Node.js PNG encoding.
@@ -163,4 +163,4 @@ const icon512 = encodePNG(512, 512, icon512Pixels);
 fs.writeFileSync(path.join(publicDir, 'icon-512.png'), icon512);
 console.log('Created icon-512.png');
 
-console.log('HeyHo Bot PWA icons generated successfully!');
+console.log('AI VC Associate PWA icons generated successfully!');

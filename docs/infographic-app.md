@@ -1,4 +1,4 @@
-# HeyHo Bot: AI-Powered Investment Research
+# AI VC Associate: AI-Powered Investment Research
 
 ## The Problem
 VC Associates spend 2-4 hours manually researching each investment opportunity:
@@ -9,7 +9,7 @@ VC Associates spend 2-4 hours manually researching each investment opportunity:
 - Writing investment memos
 
 ## The Solution
-HeyHo Bot automates the entire research-to-memo pipeline in under 2 minutes.
+AI VC Associate automates the entire research-to-memo pipeline in under 2 minutes.
 
 ## How It Works
 

@@ -1,7 +1,7 @@
 {
-  "name": "HeyHo Bot",
-  "short_name": "HeyHo Bot",
-  "description": "AI-powered investment research by HeyHo",
+  "name": "AI VC Associate",
+  "short_name": "VC Associate",
+  "description": "AI-powered investment research assistant",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#09090b",

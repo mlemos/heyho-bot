@@ -111,10 +111,23 @@ echo "heyho*" >> .gitignore
 | API Keys in code | Clean | None |
 | API Keys in .env.local | Not committed | Rotate before public |
 | Git history secrets | Clean | None |
-| HeyHo branding | Present | Genericize or remove |
-| HeyHo logos | Present | Remove from repo |
+| HeyHo branding | **DONE** | Genericized to "AI VC Associate" |
+| HeyHo logos | **DONE** | Removed from repo |
 | Fund config | Genericized | None |
 | Personal paths | In .claude/ | Verify .gitignore |
+
+---
+
+## CHANGES MADE IN `safe-to-share` BRANCH
+
+1. Removed HeyHo logo files from repo
+2. Updated `manifest.json` with generic "AI VC Associate" branding
+3. Updated `app/layout.tsx` with generic branding
+4. Updated `app/page.tsx` - replaced logo with app-icon.svg, removed unused imports
+5. Updated `scripts/generate-icons.js` comments
+6. Updated `docs/infographic-*.md` files
+7. Removed `IMPLEMENTATION_PLAN.md` (internal planning doc)
+8. Updated `.gitignore` to exclude `heyho*` files
 
 ---
 

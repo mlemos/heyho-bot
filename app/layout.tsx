@@ -3,13 +3,13 @@ import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "HeyHo Bot",
-  description: "AI-powered investment research by HeyHo",
+  title: "AI VC Associate",
+  description: "AI-powered investment research assistant",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "HeyHo Bot",
+    title: "VC Associate",
   },
 };
 
