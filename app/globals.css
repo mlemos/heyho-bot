@@ -232,3 +232,11 @@ input, textarea {
 .border-default {
   border-color: var(--border);
 }
+
+/* Resizable panel support */
+@media (min-width: 768px) {
+  .resizable-left-panel {
+    width: var(--left-panel-width, 50%);
+    flex: none;
+  }
+}

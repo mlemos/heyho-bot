@@ -14,12 +14,16 @@ import { useTheme } from "next-themes";
 type TaskStatus = "pending" | "in_progress" | "completed" | "error";
 
 type PipelineStep =
+  | "input_triage"
+  | "input_extract"
   | "identify"
   | "crm_check"
   | "research_basics"
   | "research_founders"
   | "research_funding"
   | "research_product"
+  | "research_traction"
+  | "research_market"
   | "research_competitive"
   | "research_news"
   | "synthesize"
@@ -28,12 +32,16 @@ type PipelineStep =
   | "save_crm";
 
 interface PipelineStatus {
+  input_triage: TaskStatus;
+  input_extract: TaskStatus;
   identify: TaskStatus;
   crm_check: TaskStatus;
   research_basics: TaskStatus;
   research_founders: TaskStatus;
   research_funding: TaskStatus;
   research_product: TaskStatus;
+  research_traction: TaskStatus;
+  research_market: TaskStatus;
   research_competitive: TaskStatus;
   research_news: TaskStatus;
   synthesize: TaskStatus;
@@ -43,7 +51,7 @@ interface PipelineStatus {
 }
 
 // Keep old type for backward compatibility with API
-type ResearchArea = "basics" | "founders" | "funding" | "product" | "competitive" | "news";
+type ResearchArea = "basics" | "founders" | "funding" | "product" | "traction" | "market" | "competitive" | "news";
 
 interface ProcessResult {
   id: string;
@@ -70,12 +78,16 @@ interface Message {
 
 function PipelineProgress({ status }: { status: PipelineStatus }) {
   const steps: { key: PipelineStep; label: string; shortLabel: string; group: string }[] = [
+    { key: "input_triage", label: "Triage Files", shortLabel: "Triage", group: "input" },
+    { key: "input_extract", label: "Extract Data", shortLabel: "Extract", group: "input" },
     { key: "identify", label: "Identify Company", shortLabel: "Identify", group: "setup" },
     { key: "crm_check", label: "Check CRM", shortLabel: "CRM", group: "setup" },
     { key: "research_basics", label: "Company Info", shortLabel: "Company", group: "research" },
     { key: "research_founders", label: "Founders", shortLabel: "Founders", group: "research" },
     { key: "research_funding", label: "Funding", shortLabel: "Funding", group: "research" },
     { key: "research_product", label: "Product", shortLabel: "Product", group: "research" },
+    { key: "research_traction", label: "Traction", shortLabel: "Traction", group: "research" },
+    { key: "research_market", label: "Market Potential", shortLabel: "Market", group: "research" },
     { key: "research_competitive", label: "Competition", shortLabel: "Compete", group: "research" },
     { key: "research_news", label: "News", shortLabel: "News", group: "research" },
     { key: "synthesize", label: "Synthesize Data", shortLabel: "Synthesize", group: "generate" },
@@ -97,13 +109,35 @@ function PipelineProgress({ status }: { status: PipelineStatus }) {
     }
   };
 
+  const inputSteps = steps.filter((s) => s.group === "input");
   const setupSteps = steps.filter((s) => s.group === "setup");
   const researchSteps = steps.filter((s) => s.group === "research");
   const generateSteps = steps.filter((s) => s.group === "generate");
   const saveSteps = steps.filter((s) => s.group === "save");
 
+  // Check if any input steps have activity (not all pending)
+  const hasInputActivity = inputSteps.some(({ key }) => status[key] !== "pending");
+
   return (
     <div className="space-y-4">
+      {/* Input Processing - only show if there's activity */}
+      {hasInputActivity && (
+        <div>
+          <div className="text-xs md:text-[10px] uppercase tracking-wide mb-1.5" style={{ color: 'var(--foreground-muted)' }}>Input Processing</div>
+          <div className="flex flex-wrap gap-3 md:gap-3">
+            {inputSteps.map(({ key, label, shortLabel }) => (
+              <div key={key} className="flex items-center gap-2 text-sm md:text-xs">
+                {statusIcon(status[key])}
+                <span style={{ color: status[key] === "completed" ? 'var(--foreground-secondary)' : 'var(--foreground-muted)' }}>
+                  <span className="hidden sm:inline">{label}</span>
+                  <span className="sm:hidden">{shortLabel}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Setup */}
       <div>
         <div className="text-xs md:text-[10px] uppercase tracking-wide mb-1.5" style={{ color: 'var(--foreground-muted)' }}>Setup</div>
@@ -308,7 +342,7 @@ function FundFitCard({ fundFit }: { fundFit: FundFit }) {
       {/* Aligned Theses */}
       {fundFit.alignedTheses.length > 0 && (
         <div>
-          <h5 className="text-sm md:text-xs uppercase tracking-wide mb-2" style={{ color: 'var(--foreground-muted)' }}>Aligned Theses</h5>
+          <h5 className="text-sm md:text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--foreground)' }}>Aligned Theses</h5>
           <div className="flex flex-wrap gap-1.5 md:gap-1">
             {fundFit.alignedTheses.map((thesis) => (
               <span
@@ -325,14 +359,14 @@ function FundFitCard({ fundFit }: { fundFit: FundFit }) {
 
       {/* Rationale */}
       <div>
-        <h5 className="text-sm md:text-xs uppercase tracking-wide mb-2" style={{ color: 'var(--foreground-muted)' }}>Rationale</h5>
+        <h5 className="text-sm md:text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--foreground)' }}>Rationale</h5>
         <p className="text-sm md:text-xs leading-relaxed" style={{ color: 'var(--foreground-secondary)' }}>{fundFit.rationale}</p>
       </div>
 
       {/* Concerns */}
       {fundFit.concerns.length > 0 && (
         <div>
-          <h5 className="text-sm md:text-xs uppercase tracking-wide mb-2" style={{ color: 'var(--foreground-muted)' }}>Concerns</h5>
+          <h5 className="text-sm md:text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--foreground)' }}>Concerns</h5>
           <ul className="space-y-1.5 md:space-y-1">
             {fundFit.concerns.map((concern, i) => (
               <li key={i} className="text-sm md:text-xs flex items-start gap-2 leading-relaxed" style={{ color: 'var(--foreground-secondary)' }}>
@@ -427,7 +461,7 @@ function StrategicFitCard({ strategicFit }: { strategicFit: StrategicFitAnalysis
 
       {/* Partner Matches */}
       <div className="space-y-3">
-        <h5 className="text-sm md:text-xs uppercase tracking-wide" style={{ color: 'var(--foreground-muted)' }}>Partner Matches</h5>
+        <h5 className="text-sm md:text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--foreground)' }}>Partner Matches</h5>
         {strategicFit.partnerMatches.map((match) => (
           <div
             key={match.partnerName}
@@ -473,7 +507,7 @@ function StrategicFitCard({ strategicFit }: { strategicFit: StrategicFitAnalysis
       {/* Top Opportunities */}
       {strategicFit.topPartnerOpportunities.length > 0 && (
         <div className="space-y-2">
-          <h5 className="text-sm md:text-xs uppercase tracking-wide" style={{ color: 'var(--foreground-muted)' }}>
+          <h5 className="text-sm md:text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--foreground)' }}>
             Top Partner Opportunities
           </h5>
           <ul className="space-y-1.5 md:space-y-1">
@@ -500,7 +534,7 @@ function SourcesCard({ sources }: { sources: SourceReference[] }) {
 
   return (
     <div className="space-y-3 md:space-y-2">
-      <h5 className="text-sm md:text-xs uppercase tracking-wide" style={{ color: 'var(--foreground-muted)' }}>
+      <h5 className="text-sm md:text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--foreground)' }}>
         Sources ({sources.length})
       </h5>
       <div className="space-y-2">
@@ -583,7 +617,7 @@ function AttachmentReferencesCard({ attachments }: { attachments: AttachmentRefe
       {/* Used Files */}
       {usedAttachments.length > 0 && (
         <div className="space-y-3 md:space-y-2">
-          <h5 className="text-sm md:text-xs uppercase tracking-wide" style={{ color: 'var(--foreground-muted)' }}>
+          <h5 className="text-sm md:text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--foreground)' }}>
             Files Used in Research ({usedAttachments.length})
           </h5>
           {usedAttachments.map((attachment) => (
@@ -632,7 +666,7 @@ function AttachmentReferencesCard({ attachments }: { attachments: AttachmentRefe
       {/* Not Used Files */}
       {notUsedAttachments.length > 0 && (
         <div className="space-y-3 md:space-y-2">
-          <h5 className="text-sm md:text-xs uppercase tracking-wide" style={{ color: 'var(--foreground-muted)' }}>
+          <h5 className="text-sm md:text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--foreground)' }}>
             Files Not Used ({notUsedAttachments.length})
           </h5>
           {notUsedAttachments.map((attachment) => (
@@ -828,19 +862,19 @@ function OpportunityCard({
           {/* Key Info - Single column on very small screens */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-4">
             <div>
-              <h4 className="text-sm md:text-xs uppercase tracking-wide mb-1.5 md:mb-1" style={{ color: 'var(--foreground-muted)' }}>Industry</h4>
+              <h4 className="text-sm md:text-xs font-bold uppercase tracking-wide mb-1.5 md:mb-1" style={{ color: 'var(--foreground)' }}>Industry</h4>
               <p className="text-base md:text-sm" style={{ color: 'var(--foreground-secondary)' }}>{research.company.industry}</p>
             </div>
             <div>
-              <h4 className="text-sm md:text-xs uppercase tracking-wide mb-1.5 md:mb-1" style={{ color: 'var(--foreground-muted)' }}>Funding</h4>
+              <h4 className="text-sm md:text-xs font-bold uppercase tracking-wide mb-1.5 md:mb-1" style={{ color: 'var(--foreground)' }}>Funding</h4>
               <p className="text-base md:text-sm" style={{ color: 'var(--foreground-secondary)' }}>{research.funding.totalRaised}</p>
             </div>
             <div>
-              <h4 className="text-sm md:text-xs uppercase tracking-wide mb-1.5 md:mb-1" style={{ color: 'var(--foreground-muted)' }}>Location</h4>
+              <h4 className="text-sm md:text-xs font-bold uppercase tracking-wide mb-1.5 md:mb-1" style={{ color: 'var(--foreground)' }}>Location</h4>
               <p className="text-base md:text-sm" style={{ color: 'var(--foreground-secondary)' }}>{research.company.location || "Unknown"}</p>
             </div>
             <div>
-              <h4 className="text-sm md:text-xs uppercase tracking-wide mb-1.5 md:mb-1" style={{ color: 'var(--foreground-muted)' }}>Investors</h4>
+              <h4 className="text-sm md:text-xs font-bold uppercase tracking-wide mb-1.5 md:mb-1" style={{ color: 'var(--foreground)' }}>Investors</h4>
               <p className="text-base md:text-sm" style={{ color: 'var(--foreground-secondary)' }}>
                 {research.funding.investors.slice(0, 3).join(", ")}
               </p>
@@ -849,7 +883,7 @@ function OpportunityCard({
 
           {/* Founders */}
           <div>
-            <h4 className="text-sm md:text-xs uppercase tracking-wide mb-2" style={{ color: 'var(--foreground-muted)' }}>Founders</h4>
+            <h4 className="text-sm md:text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--foreground)' }}>Founders</h4>
             <div className="space-y-3 md:space-y-2">
               {research.founders.slice(0, 3).map((founder, i) => (
                 <div key={i}>
@@ -863,13 +897,13 @@ function OpportunityCard({
 
           {/* Summary */}
           <div>
-            <h4 className="text-sm md:text-xs uppercase tracking-wide mb-2" style={{ color: 'var(--foreground-muted)' }}>Summary</h4>
+            <h4 className="text-sm md:text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--foreground)' }}>Summary</h4>
             <p className="text-base md:text-sm leading-relaxed" style={{ color: 'var(--foreground-secondary)' }}>{memo.summary}</p>
           </div>
 
           {/* Risks */}
           <div>
-            <h4 className="text-sm md:text-xs uppercase tracking-wide mb-2" style={{ color: 'var(--foreground-muted)' }}>Risks</h4>
+            <h4 className="text-sm md:text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--foreground)' }}>Risks</h4>
             <p className="text-base md:text-sm leading-relaxed" style={{ color: 'var(--foreground-secondary)' }}>{memo.sections.risksAndFlaws}</p>
           </div>
 
@@ -993,12 +1027,16 @@ function ProcessingCard({
 // ===========================================
 
 const initialPipelineStatus: PipelineStatus = {
+  input_triage: "pending",
+  input_extract: "pending",
   identify: "pending",
   crm_check: "pending",
   research_basics: "pending",
   research_founders: "pending",
   research_funding: "pending",
   research_product: "pending",
+  research_traction: "pending",
+  research_market: "pending",
   research_competitive: "pending",
   research_news: "pending",
   synthesize: "pending",
@@ -1019,6 +1057,8 @@ export default function Home() {
   const [pipelineStatus, setPipelineStatus] = useState<PipelineStatus>(initialPipelineStatus);
   const [liveMetrics, setLiveMetrics] = useState({ tokens: 0, elapsed: 0 });
   const [mounted, setMounted] = useState(false);
+  const [leftPanelWidth, setLeftPanelWidth] = useState(50); // percentage
+  const [isResizing, setIsResizing] = useState(false);
 
   const { resolvedTheme } = useTheme();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -1029,6 +1069,39 @@ export default function Home() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Panel resize handlers
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  useEffect(() => {
+    const handleResizeMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+      const newWidth = (e.clientX / window.innerWidth) * 100;
+      // Constrain between 25% and 75%
+      setLeftPanelWidth(Math.min(75, Math.max(25, newWidth)));
+    };
+
+    const handleResizeEnd = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleResizeMove);
+      document.addEventListener('mouseup', handleResizeEnd);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleResizeMove);
+      document.removeEventListener('mouseup', handleResizeEnd);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing]);
 
   // File handling callbacks
   const handleFilesAdded = useCallback((files: AttachedFile[]) => {
@@ -1192,10 +1265,12 @@ export default function Home() {
               if (event.type === "progress") {
                 // Map stage to pipeline status
                 const stageMap: Record<string, PipelineStep> = {
-                  triaging: "identify", // File triage maps to identify step
-                  triaged: "identify",
-                  analyzing: "identify", // Legacy - File analysis maps to identify step
-                  analyzed: "identify",
+                  triaging: "input_triage",
+                  triaged: "input_triage",
+                  extracting: "input_extract",
+                  extracted: "input_extract",
+                  analyzing: "input_extract", // Legacy - File analysis maps to extract step
+                  analyzed: "input_extract",
                   identifying: "identify",
                   checking: "crm_check",
                   researching: "research_basics", // Will be updated by research events
@@ -1209,47 +1284,90 @@ export default function Home() {
                 };
                 const step = stageMap[event.stage];
                 if (step) {
+                  const isCompleted = ["triaged", "extracted", "analyzed"].includes(event.stage);
                   setPipelineStatus((prev) => ({
                     ...prev,
-                    [step]: event.stage === "triaged" || event.stage === "analyzed" ? "completed" : "in_progress",
+                    [step]: isCompleted ? "completed" : "in_progress",
                   }));
                 }
                 // Mark previous steps as completed based on stage
-                if (event.stage === "triaged" || event.stage === "analyzed") {
+                if (event.stage === "triaged") {
+                  setPipelineStatus((prev) => ({ ...prev, input_triage: "completed", input_extract: "in_progress" }));
+                } else if (event.stage === "extracted" || event.stage === "analyzed") {
                   // Update processingCompany with extracted name
                   const match = event.message?.match(/Identified "([^"]+)"/);
                   if (match) {
                     setProcessingCompany(match[1]);
                   }
-                } else if (event.stage === "checking") {
-                  setPipelineStatus((prev) => ({ ...prev, identify: "completed" }));
-                } else if (event.stage === "researching") {
-                  setPipelineStatus((prev) => ({ ...prev, identify: "completed", crm_check: "completed" }));
-                } else if (event.stage === "synthesizing") {
+                  setPipelineStatus((prev) => ({ ...prev, input_triage: "completed", input_extract: "completed", identify: "in_progress" }));
+                } else if (event.stage === "identifying") {
                   setPipelineStatus((prev) => ({
                     ...prev,
-                    identify: "completed",
-                    crm_check: "completed",
-                    research_basics: "completed",
-                    research_founders: "completed",
-                    research_funding: "completed",
-                    research_product: "completed",
-                    research_competitive: "completed",
-                    research_news: "completed",
+                    input_triage: prev.input_triage === "error" ? "error" : "completed",
+                    input_extract: prev.input_extract === "error" ? "error" : "completed",
+                    identify: "in_progress"
+                  }));
+                } else if (event.stage === "checking") {
+                  setPipelineStatus((prev) => ({
+                    ...prev,
+                    input_triage: prev.input_triage === "error" ? "error" : "completed",
+                    input_extract: prev.input_extract === "error" ? "error" : "completed",
+                    identify: prev.identify === "error" ? "error" : "completed"
+                  }));
+                } else if (event.stage === "researching") {
+                  setPipelineStatus((prev) => ({
+                    ...prev,
+                    input_triage: prev.input_triage === "error" ? "error" : "completed",
+                    input_extract: prev.input_extract === "error" ? "error" : "completed",
+                    identify: prev.identify === "error" ? "error" : "completed",
+                    crm_check: prev.crm_check === "error" ? "error" : "completed"
+                  }));
+                } else if (event.stage === "synthesizing") {
+                  // Only mark as completed if not already in error state
+                  setPipelineStatus((prev) => ({
+                    ...prev,
+                    input_triage: prev.input_triage === "error" ? "error" : "completed",
+                    input_extract: prev.input_extract === "error" ? "error" : "completed",
+                    identify: prev.identify === "error" ? "error" : "completed",
+                    crm_check: prev.crm_check === "error" ? "error" : "completed",
+                    research_basics: prev.research_basics === "error" ? "error" : "completed",
+                    research_founders: prev.research_founders === "error" ? "error" : "completed",
+                    research_funding: prev.research_funding === "error" ? "error" : "completed",
+                    research_product: prev.research_product === "error" ? "error" : "completed",
+                    research_traction: prev.research_traction === "error" ? "error" : "completed",
+                    research_market: prev.research_market === "error" ? "error" : "completed",
+                    research_competitive: prev.research_competitive === "error" ? "error" : "completed",
+                    research_news: prev.research_news === "error" ? "error" : "completed",
                     synthesize: "in_progress",
                   }));
                 } else if (event.stage === "generating") {
-                  setPipelineStatus((prev) => ({ ...prev, synthesize: "completed", generate_memo: "in_progress" }));
+                  setPipelineStatus((prev) => ({
+                    ...prev,
+                    synthesize: prev.synthesize === "error" ? "error" : "completed",
+                    generate_memo: "in_progress"
+                  }));
                 } else if (event.stage === "infographic") {
-                  setPipelineStatus((prev) => ({ ...prev, generate_memo: "completed", generate_infographic: "in_progress" }));
+                  setPipelineStatus((prev) => ({
+                    ...prev,
+                    generate_memo: prev.generate_memo === "error" ? "error" : "completed",
+                    generate_infographic: "in_progress"
+                  }));
                 } else if (event.stage === "infographic_done") {
                   setPipelineStatus((prev) => ({ ...prev, generate_infographic: "completed" }));
                 } else if (event.stage === "infographic_skip" || event.stage === "infographic_error") {
                   setPipelineStatus((prev) => ({ ...prev, generate_infographic: event.stage === "infographic_error" ? "error" : "completed" }));
                 } else if (event.stage === "saving") {
-                  setPipelineStatus((prev) => ({ ...prev, generate_memo: "completed", generate_infographic: "completed", save_crm: "in_progress" }));
+                  setPipelineStatus((prev) => ({
+                    ...prev,
+                    generate_memo: prev.generate_memo === "error" ? "error" : "completed",
+                    generate_infographic: prev.generate_infographic === "error" ? "error" : "completed",
+                    save_crm: "in_progress"
+                  }));
                 } else if (event.stage === "complete") {
-                  setPipelineStatus((prev) => ({ ...prev, save_crm: "completed" }));
+                  setPipelineStatus((prev) => ({
+                    ...prev,
+                    save_crm: prev.save_crm === "error" ? "error" : "completed"
+                  }));
                 }
               } else if (event.type === "research") {
                 // Map research area to pipeline step
@@ -1258,6 +1376,8 @@ export default function Home() {
                   founders: "research_founders",
                   funding: "research_funding",
                   product: "research_product",
+                  traction: "research_traction",
+                  market: "research_market",
                   competitive: "research_competitive",
                   news: "research_news",
                 };
@@ -1318,10 +1438,14 @@ export default function Home() {
 
   return (
     <main className="flex flex-col md:flex-row fixed inset-0 overflow-hidden" style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}>
-      {/* Main Panel - Full width on mobile, half on desktop */}
+      {/* Main Panel - Full width on mobile, resizable on desktop */}
       <div
-        className="flex flex-col md:w-1/2 md:border-r overflow-hidden"
-        style={{ backgroundColor: 'var(--background)', borderColor: 'var(--border)', flex: '1 1 auto' }}
+        className="flex flex-col overflow-hidden flex-1 resizable-left-panel"
+        style={{
+          backgroundColor: 'var(--background)',
+          borderColor: 'var(--border)',
+          '--left-panel-width': `${leftPanelWidth}%`,
+        } as React.CSSProperties}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onDragOver={handleDragOver}
@@ -1567,8 +1691,23 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Resize Handle (Desktop only) */}
+      <div
+        className="hidden md:flex w-1 cursor-col-resize items-center justify-center hover:bg-blue-500/20 transition-colors group"
+        style={{ backgroundColor: isResizing ? 'var(--primary)' : 'var(--border)' }}
+        onMouseDown={handleResizeStart}
+      >
+        <div
+          className="w-0.5 h-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+          style={{ backgroundColor: 'var(--primary)' }}
+        />
+      </div>
+
       {/* Right Panel - Opportunities (Desktop only - mobile shows inline in chat) */}
-      <div className="hidden md:flex md:w-1/2 flex-col overflow-hidden" style={{ backgroundColor: 'var(--background-secondary)' }}>
+      <div
+        className="hidden md:flex flex-col overflow-hidden flex-1"
+        style={{ backgroundColor: 'var(--background-secondary)' }}
+      >
         {/* Header - matches left panel */}
         <div className="px-4 py-3 md:py-4 border-b flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
           <div className="flex items-center gap-2 h-7">

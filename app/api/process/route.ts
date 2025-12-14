@@ -262,6 +262,7 @@ async function runPipeline(
   const research = await runParallelResearch(
     companyName,
     (area, status, tokens) => {
+      console.log(`[Research] ${area}: ${status}${tokens ? ` (${tokens} tokens)` : ''}`);
       if (tokens) {
         totalTokens += tokens;
       }

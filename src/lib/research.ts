@@ -27,7 +27,7 @@ import { formatFundThesisContext } from "../config/fund-thesis";
 // Types
 // ===========================================
 
-export type ResearchArea = "basics" | "founders" | "funding" | "product" | "competitive" | "news";
+export type ResearchArea = "basics" | "founders" | "funding" | "product" | "traction" | "market" | "competitive" | "news";
 
 export interface TokenUsage {
   promptTokens: number;
@@ -64,6 +64,8 @@ export interface ParallelResearchResults {
   founders: string;
   funding: string;
   product: string;
+  traction: string;
+  market: string;
   competitive: string;
   news: string;
   totalUsage?: TokenUsage;
@@ -82,6 +84,8 @@ export interface FileContext {
   founders?: string;
   funding?: string;
   product?: string;
+  traction?: string;
+  market?: string;
   competitive?: string;
   news?: string;
 }
@@ -106,7 +110,7 @@ Now search for additional/updated information:
 export async function researchCompanyBasics(companyName: string, fileContext?: string): Promise<ResearchResultWithUsage> {
   const contextPrefix = buildContextPrefix(fileContext);
   const { text, usage } = await generateText({
-    model: google("gemini-3-pro-preview"),
+    model: google("gemini-2.5-flash"),
     tools: {
       google_search: google.tools.googleSearch({}),
     },
@@ -129,7 +133,7 @@ Be thorough and cite specific facts.`,
 export async function researchFounders(companyName: string, fileContext?: string): Promise<ResearchResultWithUsage> {
   const contextPrefix = buildContextPrefix(fileContext);
   const { text, usage } = await generateText({
-    model: google("gemini-3-pro-preview"),
+    model: google("gemini-2.5-flash"),
     tools: {
       google_search: google.tools.googleSearch({}),
     },
@@ -151,7 +155,7 @@ Focus on finding specific names and verifiable background info.`,
 export async function researchFunding(companyName: string, fileContext?: string): Promise<ResearchResultWithUsage> {
   const contextPrefix = buildContextPrefix(fileContext);
   const { text, usage } = await generateText({
-    model: google("gemini-3-pro-preview"),
+    model: google("gemini-2.5-flash"),
     tools: {
       google_search: google.tools.googleSearch({}),
     },
@@ -174,7 +178,7 @@ Look for specific dollar amounts and investor names.`,
 export async function researchProduct(companyName: string, fileContext?: string): Promise<ResearchResultWithUsage> {
   const contextPrefix = buildContextPrefix(fileContext);
   const { text, usage } = await generateText({
-    model: google("gemini-3-pro-preview"),
+    model: google("gemini-2.5-flash"),
     tools: {
       google_search: google.tools.googleSearch({}),
     },
@@ -194,10 +198,62 @@ Focus on product details and any available traction metrics.`,
   };
 }
 
+export async function researchTraction(companyName: string, fileContext?: string): Promise<ResearchResultWithUsage> {
+  const contextPrefix = buildContextPrefix(fileContext);
+  const { text, usage } = await generateText({
+    model: google("gemini-2.5-flash"),
+    tools: {
+      google_search: google.tools.googleSearch({}),
+    },
+    stopWhen: stepCountIs(3),
+    prompt: `${contextPrefix}Search for traction and growth metrics about "${companyName}" company:
+- How many users/customers do they have?
+- What is their revenue (ARR/MRR if SaaS)?
+- What are their growth rates (MoM, YoY)?
+- What is their customer retention/churn rate?
+- What key milestones have they achieved?
+- What is their business model (B2B, B2C, marketplace)?
+- Any notable customer logos or case studies?
+- What is their pricing model?
+- What is their unit economics (CAC, LTV, margins)?
+
+Focus on finding specific numbers and growth metrics. Look for press releases, funding announcements, and interviews that mention traction.`,
+  });
+  return {
+    text,
+    usage: mapUsage(usage),
+  };
+}
+
+export async function researchMarket(companyName: string, fileContext?: string): Promise<ResearchResultWithUsage> {
+  const contextPrefix = buildContextPrefix(fileContext);
+  const { text, usage } = await generateText({
+    model: google("gemini-2.5-flash"),
+    tools: {
+      google_search: google.tools.googleSearch({}),
+    },
+    stopWhen: stepCountIs(3),
+    prompt: `${contextPrefix}Search for market potential and opportunity information about "${companyName}" company:
+- What is the total addressable market (TAM)?
+- What is the serviceable addressable market (SAM)?
+- What is the serviceable obtainable market (SOM)?
+- What is the market growth rate (CAGR)?
+- What are the key market trends and tailwinds?
+- What is the market maturity stage?
+- Are there any regulatory factors affecting the market?
+
+Focus on finding specific market size numbers and growth projections.`,
+  });
+  return {
+    text,
+    usage: mapUsage(usage),
+  };
+}
+
 export async function researchCompetitive(companyName: string, fileContext?: string): Promise<ResearchResultWithUsage> {
   const contextPrefix = buildContextPrefix(fileContext);
   const { text, usage } = await generateText({
-    model: google("gemini-3-pro-preview"),
+    model: google("gemini-2.5-flash"),
     tools: {
       google_search: google.tools.googleSearch({}),
     },
@@ -205,7 +261,6 @@ export async function researchCompetitive(companyName: string, fileContext?: str
     prompt: `${contextPrefix}Search for competitive landscape information about "${companyName}" company:
 - Who are their main competitors?
 - How do they differentiate themselves?
-- What is the market size/opportunity?
 - What are their competitive advantages or moats?
 
 Identify specific competitor names and differentiation points.`,
@@ -219,7 +274,7 @@ Identify specific competitor names and differentiation points.`,
 export async function researchNews(companyName: string, fileContext?: string): Promise<ResearchResultWithUsage> {
   const contextPrefix = buildContextPrefix(fileContext);
   const { text, usage } = await generateText({
-    model: google("gemini-3-pro-preview"),
+    model: google("gemini-2.5-flash"),
     tools: {
       google_search: google.tools.googleSearch({}),
     },
@@ -254,6 +309,8 @@ export async function runParallelResearch(
     { area: "founders" as ResearchArea, fn: () => researchFounders(companyName, fileContext?.founders) },
     { area: "funding" as ResearchArea, fn: () => researchFunding(companyName, fileContext?.funding) },
     { area: "product" as ResearchArea, fn: () => researchProduct(companyName, fileContext?.product) },
+    { area: "traction" as ResearchArea, fn: () => researchTraction(companyName, fileContext?.traction) },
+    { area: "market" as ResearchArea, fn: () => researchMarket(companyName, fileContext?.market) },
     { area: "competitive" as ResearchArea, fn: () => researchCompetitive(companyName, fileContext?.competitive) },
     { area: "news" as ResearchArea, fn: () => researchNews(companyName, fileContext?.news) },
   ];
@@ -268,6 +325,7 @@ export async function runParallelResearch(
         return { area, text: result.text, usage: result.usage, error: null };
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : "Unknown error";
+        console.error(`[Research Error] ${area}:`, errorMsg);
         onProgress?.(area, "error");
         return { area, text: "", usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 }, error: errorMsg };
       }
@@ -286,6 +344,8 @@ export async function runParallelResearch(
     founders: "",
     funding: "",
     product: "",
+    traction: "",
+    market: "",
     competitive: "",
     news: "",
   };
@@ -320,8 +380,14 @@ ${research.founders}
 ## Funding
 ${research.funding}
 
-## Product & Traction
+## Product
 ${research.product}
+
+## Traction & Growth Metrics
+${research.traction}
+
+## Market Potential
+${research.market}
 
 ## Competitive Landscape
 ${research.competitive}
@@ -331,7 +397,7 @@ ${research.news}
 `;
 
   const { object } = await generateObject({
-    model: google("gemini-2.5-flash"),  // Using Flash for faster synthesis
+    model: google("gemini-3-pro-preview"),  // Using Pro for better reasoning
     schema: CompanyResearchSchema,
     prompt: `Based on the following research about "${companyName}", extract structured information.
 If information is not available, use reasonable defaults or "Unknown".
@@ -342,8 +408,10 @@ Extract:
 1. Company basics (name, website, description, industry, stage, location)
 2. Founders (name, role, background for each)
 3. Funding info (total raised, last round, date, investors)
-4. Momentum (recent news items, growth indicators)
-5. Competitive info (landscape, competitors, differentiation)`,
+4. Traction metrics (users, revenue, growth rates, retention, key milestones)
+5. Momentum (recent news items, growth indicators)
+6. Market potential (TAM, SAM, SOM, growth rate, trends)
+7. Competitive info (landscape, competitors, differentiation)`,
   });
 
   return object;
@@ -387,8 +455,14 @@ ${rawResearch.founders}
 ### Funding Research
 ${rawResearch.funding}
 
-### Product & Traction Research
+### Product Research
 ${rawResearch.product}
+
+### Traction & Growth Metrics Research
+${rawResearch.traction}
+
+### Market Potential Research
+${rawResearch.market}
 
 ### Competitive Landscape Research
 ${rawResearch.competitive}
@@ -401,7 +475,7 @@ ${rawResearch.news}
     : "";
 
   const { object } = await generateObject({
-    model: google("gemini-2.5-flash"),  // Using Flash for faster memo generation
+    model: google("gemini-3-pro-preview"),  // Using Pro for better analysis and scoring
     schema: InvestmentMemoGenerationSchema,
     prompt: `Generate a professional, DETAILED investment memo for "${companyName}".
 
@@ -449,6 +523,15 @@ Format citations as: [Source Name, Date] - e.g., [TechCrunch, Dec 2024] or [Comp
 - Current valuation if known
 - How does this compare to peers?
 
+### Traction Analysis
+- User/customer numbers and growth (MoM, YoY)
+- Revenue metrics (ARR/MRR for SaaS, GMV for marketplaces)
+- Retention and churn rates
+- Key milestones achieved
+- Unit economics (CAC, LTV, margins) if available
+- Notable customer logos or case studies
+- Cite specific numbers and sources
+
 ### Momentum Analysis
 - Recent news, launches, partnerships, customer wins
 - Growth metrics if available
@@ -476,8 +559,13 @@ Format citations as: [Source Name, Date] - e.g., [TechCrunch, Dec 2024] or [Comp
 - Red flags or areas needing due diligence
 
 ## 3. COMPANY SCORECARD (0.0-10.0 scale)
-- Team, Market, Product, Traction, Competition, Overall
-- Use decimal scores (e.g., 7.5)
+- Team: Founder backgrounds, experience, domain expertise
+- Market: TAM/SAM size, growth rate, timing, competitive dynamics
+- Product: Product-market fit signals, differentiation, defensibility
+- Traction: Revenue growth, user growth, retention, unit economics (CRITICAL - use traction research data)
+- Competition: Competitive positioning, moats, defensibility
+- Overall: Weighted average considering all factors
+- Use decimal scores (e.g., 7.5) with clear justification
 
 ## 4. FUND FIT (0.0-10.0 scale)
 - Score, Stage fit, Sector fit, Geography fit, Check size fit
